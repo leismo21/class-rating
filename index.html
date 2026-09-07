@@ -55,6 +55,25 @@
   .sync-status.offline { background: #ffebee; color: #c62828; }
   .sync-status.syncing { background: #fff3e0; color: #ef6c00; }
 
+  .error-box {
+    background: #ffebee;
+    border: 2px solid #f44336;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+    text-align: left;
+  }
+  .error-box h3 { color: #c62828; margin-bottom: 10px; }
+  .error-box code { 
+    background: #f5f5f5; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    font-family: monospace;
+    display: block;
+    margin: 8px 0;
+    word-break: break-all;
+  }
+
   .tabs {
     display: flex;
     flex-wrap: wrap;
@@ -293,9 +312,11 @@
   <header>
     <h1>📚 Дежурные и рейтинг 6А класса</h1>
     <p id="todayDate"></p>
-    <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
+    <div class="sync-status syncing" id="syncStatus"> Подключение...</div>
     <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
   </header>
+
+  <div id="errorContainer"></div>
 
   <div class="tabs" id="tabsContainer">
     <div class="tab active" data-screen="today" id="tab-today">🏠 Дежурство и Рейтинг</div>
@@ -319,7 +340,7 @@
     </div>
 
     <div class="card teacher-only" id="assignSectionCard" style="display:none;">
-      <h2> Назначить дежурных</h2>
+      <h2>🎲 Назначить дежурных</h2>
       <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
       <label style="font-size:14px; font-weight:500;">Дата:</label>
       <input type="date" id="dutyDate">
@@ -347,7 +368,7 @@
   <!-- ЭКРАН: ПОЛНЫЙ РЕЙТИНГ (Только учитель) -->
   <div class="screen teacher-only" id="screen-rating" style="display:none;">
     <div class="card">
-      <h2>🏆 Полный рейтинг класса</h2>
+      <h2> Полный рейтинг класса</h2>
       <div id="ratingList"></div>
     </div>
   </div>
@@ -386,7 +407,7 @@
     <div class="card">
       <h2>⚙️ Резервное копирование</h2>
       <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
-      <button class="btn secondary" onclick="document.getElementById('importFile').click()"> Импорт данных</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
       <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
       <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
       <p style="color:#888; font-size:13px; margin-top:15px;">
@@ -411,8 +432,6 @@
 
 <script>
 // ==================== НАСТРОЙКИ ====================
-// ⚠️ ПАРОЛЯ ЗДЕСЬ НЕТ! Он хранится в вашем Bin на JSONBin в поле "teacherPassword"
-
 const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
 const DEFAULT_API_KEY = "$2a$10$42IbdBXbMxKwaxhwC5prnuskskVLHIErgQlMLdr5kbL87IfLAY59O";
 
@@ -428,7 +447,7 @@ const DEFAULT_STUDENTS = [
 ];
 
 const PRIVILEGES = [
-  { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
+  { id: 1, icon: "", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
   { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
   { id: 3, icon: "🪑", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
   { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
@@ -453,14 +472,32 @@ let isTeacher = false;
 let isSyncing = false;
 let pendingDuty = [];
 let cachedTeacherPassword = null;
+let cloudLoadError = null;
 
-// ==================== АВТОРИЗАЦИЯ (пароль из облака) ====================
+// ==================== ПОКАЗ ОШИБКИ ====================
+function showError(title, message, details = '') {
+  const container = document.getElementById("errorContainer");
+  container.innerHTML = `
+    <div class="error-box">
+      <h3>⚠️ ${title}</h3>
+      <p>${message}</p>
+      ${details ? `<code>${details}</code>` : ''}
+      <button class="btn" onclick="location.reload()" style="margin-top:10px;">🔄 Обновить страницу</button>
+    </div>
+  `;
+}
+
+// ==================== АВТОРИЗАЦИЯ ====================
 async function toggleTeacherMode() {
   const loginBtn = document.getElementById("loginBtn");
   
   if (!isTeacher) {
     if (cachedTeacherPassword === null) {
-      alert("⏳ Пароль ещё загружается из облака. Подождите несколько секунд и попробуйте снова.");
+      if (cloudLoadError) {
+        alert(`❌ Ошибка подключения к облаку:\n${cloudLoadError}\n\nПроверьте консоль браузера (F12) для подробностей.`);
+      } else {
+        alert("⏳ Пароль ещё загружается из облака. Подождите несколько секунд и попробуйте снова.");
+      }
       return;
     }
     
@@ -481,7 +518,7 @@ async function toggleTeacherMode() {
 
 function updateView() {
   const loginBtn = document.getElementById("loginBtn");
-  loginBtn.textContent = isTeacher ? " Выйти из режима учителя" : " Войти как учитель";
+  loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
 
   document.querySelectorAll(".teacher-only").forEach(el => {
@@ -514,19 +551,32 @@ function updateSyncStatus(status, text) {
 
 async function loadFromCloud() {
   if (!cloudConfig.apiKey || !cloudConfig.binId) {
-    updateSyncStatus("offline", "⚪ Облако не подключено");
+    updateSyncStatus("offline", " Облако не подключено");
+    showError("Ошибка конфигурации", "Не указан API ключ или Bin ID", 
+      `Bin ID: ${cloudConfig.binId}\nAPI Key: ${cloudConfig.apiKey.substring(0, 20)}...`);
     return;
   }
+  
   if (isSyncing) return;
   isSyncing = true;
   updateSyncStatus("syncing", "🔄 Загрузка...");
 
   try {
+    console.log("🔄 Подключение к JSONBin...");
+    console.log("Bin ID:", cloudConfig.binId);
+    
     const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
       headers: { "X-Master-Key": cloudConfig.apiKey }
     });
-    if (!response.ok) throw new Error("Ошибка: " + response.status);
+    
+    console.log("Status:", response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log("✅ Данные получены:", data);
     
     if (data.record && data.record.students && data.record.students.length > 0) {
       state = data.record;
@@ -534,21 +584,29 @@ async function loadFromCloud() {
       
       if (data.record.teacherPassword !== undefined) {
         cachedTeacherPassword = data.record.teacherPassword;
-        console.log("✅ Пароль учителя загружен из облака");
+        console.log("✅ Пароль учителя загружен:", cachedTeacherPassword);
       } else {
         cachedTeacherPassword = null;
         console.warn("⚠️ Поле teacherPassword не найдено в Bin!");
+        showError("Отсутствует пароль", 
+          "В вашем Bin на JSONBin не найдено поле teacherPassword. Добавьте его!",
+          'Откройте JSONBin, нажмите Edit и добавьте в начало:\n"teacherPassword": "ychitel6a",');
       }
       
       updateSyncStatus("online", "🟢 Подключено");
     } else {
+      console.warn("️ Bin пуст или некорректен");
       updateSyncStatus("syncing", " Инициализация...");
       await saveToCloud();
     }
     renderAll();
   } catch (err) {
-    console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка сети");
+    console.error("❌ Ошибка загрузки:", err);
+    cloudLoadError = err.message;
+    updateSyncStatus("offline", "🔴 Ошибка подключения");
+    showError("Ошибка сети", 
+      "Не удалось подключиться к JSONBin. Возможные причины:",
+      `1. JSONBin.io недоступен из вашего региона\n2. Неверный API ключ или Bin ID\n3. Превышен лимит запросов\n\nДетали: ${err.message}\n\nBin ID: ${cloudConfig.binId}`);
     renderAll();
   } finally {
     isSyncing = false;
@@ -570,11 +628,11 @@ async function saveToCloud() {
       },
       body: JSON.stringify(state)
     });
-    if (!response.ok) throw new Error("Ошибка: " + response.status);
-    updateSyncStatus("online", " Сохранено");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    updateSyncStatus("online", "🟢 Сохранено");
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка");
+    updateSyncStatus("offline", "🔴 Ошибка сохранения");
   } finally {
     isSyncing = false;
   }
@@ -997,7 +1055,7 @@ function importData(event) {
 }
 
 function resetData() {
-  if (confirm("️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
+  if (confirm("⚠️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
     if (confirm("Точно-точно? Все баллы, история, привилегии будут удалены.")) {
       state = {
         students: DEFAULT_STUDENTS.map((name, i) => ({
@@ -1015,6 +1073,10 @@ function resetData() {
 }
 
 // ==================== СТАРТ ====================
+console.log("🚀 Загрузка приложения...");
+console.log("Bin ID:", cloudConfig.binId);
+console.log("API Key:", cloudConfig.apiKey.substring(0, 20) + "...");
+
 loadFromCloud();
 setInterval(() => {
   if (cloudConfig.apiKey && cloudConfig.binId && !isSyncing) {
