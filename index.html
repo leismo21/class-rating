@@ -23,8 +23,10 @@
   .tab { flex: 1 1 auto; padding: 10px 12px; text-align: center; cursor: pointer; border-radius: 12px; font-weight: 500; font-size: 13px; transition: all 0.3s; white-space: nowrap; min-width: 100px; }
   .tab.active { background: #667eea; color: white; }
   .tab:not(.active):hover { background: #f0f0f0; }
+  .tab.hidden { display: none !important; }
   .screen { display: none; animation: fadeIn 0.3s; }
   .screen.active { display: block; }
+  .screen.hidden { display: none !important; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
   .card h2 { color: #667eea; margin-bottom: 15px; font-size: 18px; }
@@ -91,16 +93,16 @@
     <h1>📚 Дежурные и рейтинг 6А класса</h1>
     <p id="todayDate"></p>
     <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
-    <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
+    <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()"> Войти как учитель</button>
   </header>
 
   <div class="tabs" id="tabsContainer">
     <div class="tab active" data-screen="today" id="tab-today">🏠 Дежурство и Рейтинг</div>
     <div class="tab" data-screen="shop" id="tab-shop">🎁 Магазин</div>
-    <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
-    <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
-    <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
-    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</div>
+    <div class="tab teacher-only hidden" data-screen="students" id="tab-students">👥 Ученики</div>
+    <div class="tab teacher-only hidden" data-screen="rating" id="tab-rating">🏆 Полный рейтинг</div>
+    <div class="tab teacher-only hidden" data-screen="history" id="tab-history"> История</div>
+    <div class="tab teacher-only hidden" data-screen="settings" id="tab-settings">⚙️ Настройки</div>
   </div>
 
   <div class="screen active" id="screen-today">
@@ -108,11 +110,11 @@
       <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
       <div class="duty-names" id="dutyNames">Загрузка данных...</div>
     </div>
-    <div class="card teacher-only" id="rateSectionCard" style="display:none;">
+    <div class="card teacher-only hidden" id="rateSectionCard">
       <h2>⭐ Оценить дежурных</h2>
       <div id="rateSection"></div>
     </div>
-    <div class="card teacher-only" id="assignSectionCard" style="display:none;">
+    <div class="card teacher-only hidden" id="assignSectionCard">
       <h2>🎲 Назначить дежурных</h2>
       <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
       <label style="font-size:14px; font-weight:500;">Дата:</label>
@@ -129,14 +131,14 @@
     </div>
   </div>
 
-  <div class="screen teacher-only" id="screen-students" style="display:none;">
+  <div class="screen teacher-only hidden" id="screen-students">
     <div class="card">
       <h2>👥 Список класса (<span id="studentCount">0</span> чел.)</h2>
       <div class="student-list" id="studentList"></div>
     </div>
   </div>
 
-  <div class="screen teacher-only" id="screen-rating" style="display:none;">
+  <div class="screen teacher-only hidden" id="screen-rating">
     <div class="card">
       <h2>🏆 Полный рейтинг класса</h2>
       <div id="ratingList"></div>
@@ -153,7 +155,7 @@
       <h2>🎫 Купленные привилегии</h2>
       <div id="boughtPrivileges"></div>
     </div>
-    <div class="card teacher-only" id="shopAdminCard" style="display:none;">
+    <div class="card teacher-only hidden" id="shopAdminCard">
       <h2>🛒 Выдать привилегию ученику</h2>
       <p style="color:#666; font-size:14px; margin-bottom:15px;">Выберите ученика и привилегию для выдачи.</p>
       <select id="shopStudent"></select>
@@ -161,14 +163,14 @@
     </div>
   </div>
 
-  <div class="screen teacher-only" id="screen-history" style="display:none;">
+  <div class="screen teacher-only hidden" id="screen-history">
     <div class="card">
       <h2>📜 История операций</h2>
       <div id="historyList"></div>
     </div>
   </div>
 
-  <div class="screen teacher-only" id="screen-settings" style="display:none;">
+  <div class="screen teacher-only hidden" id="screen-settings">
     <div class="card">
       <h2>⚙️ Резервное копирование</h2>
       <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
@@ -192,11 +194,8 @@
 </div>
 
 <script>
-// ==================== НАСТРОЙКИ SUPABASE ====================
 const SUPABASE_URL = "https://skyvcfohmlrrdbzqmopr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_LJbXjAwV4KMqqdxXP64-aA_TT0qh9bz";
-
-// Используем supabaseClient, чтобы избежать конфликтов имен с глобальной библиотекой
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const DEFAULT_STUDENTS = [
@@ -211,10 +210,10 @@ const DEFAULT_STUDENTS = [
 ];
 
 const PRIVILEGES = [
-  { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе", price: 15 },
+  { id: 1, icon: "", name: "DJ на перемене", desc: "Выбор музыки в классе", price: 15 },
   { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на 1 день", price: 20 },
   { id: 3, icon: "🪑", name: "Сиди с другом", desc: "1 день сидеть с другом", price: 25 },
-  { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "1 опоздание прощается", price: 30 },
+  { id: 4, icon: "", name: "Опоздание без последствий", desc: "1 опоздание прощается", price: 30 },
   { id: 5, icon: "🎫", name: "Право не отвечать", desc: "1 раз не отвечать на уроке", price: 40 }
 ];
 
@@ -251,19 +250,35 @@ function updateView() {
   const loginBtn = document.getElementById("loginBtn");
   loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
-  document.querySelectorAll(".teacher-only").forEach(el => { el.style.display = isTeacher ? "block" : "none"; });
+
+  // Показываем/скрываем teacher-only элементы через класс hidden
+  document.querySelectorAll(".teacher-only").forEach(el => {
+    if (isTeacher) {
+      el.classList.remove("hidden");
+    } else {
+      el.classList.add("hidden");
+    }
+  });
+
+  // Переключаемся на первую вкладку
   switchTab("today");
   renderAll();
 }
 
 function switchTab(screenName) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  // Скрываем ВСЕ экраны и убираем активность со всех вкладок
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  const targetTab = document.querySelector(`.tab[data-screen="${screenName}"]`);
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  
+  // Показываем только нужный экран и активируем вкладку
   const targetScreen = document.getElementById(`screen-${screenName}`);
-  if (targetTab && targetScreen) {
-    targetTab.classList.add("active");
+  const targetTab = document.querySelector(`.tab[data-screen="${screenName}"]`);
+  
+  if (targetScreen && !targetScreen.classList.contains("hidden")) {
     targetScreen.classList.add("active");
+  }
+  if (targetTab && !targetTab.classList.contains("hidden")) {
+    targetTab.classList.add("active");
   }
 }
 
@@ -313,7 +328,7 @@ async function saveToCloud() {
     updateSyncStatus("online", "🟢 Сохранено");
   } catch (err) {
     console.error("Ошибка сохранения:", err);
-    updateSyncStatus("offline", "🔴 Ошибка");
+    updateSyncStatus("offline", " Ошибка");
   } finally {
     isSyncing = false;
   }
@@ -323,8 +338,14 @@ function saveState() { saveToCloud(); }
 
 // ==================== ВКЛАДКИ И ДАТА ====================
 document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => { switchTab(tab.dataset.screen); renderAll(); });
+  tab.addEventListener("click", () => {
+    if (!tab.classList.contains("hidden")) {
+      switchTab(tab.dataset.screen);
+      renderAll();
+    }
+  });
 });
+
 function todayStr() { return new Date().toISOString().split("T")[0]; }
 function formatDate(str) { return new Date(str).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }); }
 document.getElementById("todayDate").textContent = formatDate(todayStr());
