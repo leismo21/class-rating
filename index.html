@@ -21,9 +21,27 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     margin-bottom: 20px;
     text-align: center;
+    position: relative;
   }
   header h1 { color: #667eea; font-size: 24px; }
   header p { color: #888; font-size: 14px; margin-top: 5px; }
+
+  .login-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #f0f0f0;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    transition: all 0.2s;
+  }
+  .login-btn:hover { background: #e0e0e0; }
+  .login-btn.active { background: #667eea; color: white; }
 
   .sync-status {
     display: inline-block;
@@ -264,6 +282,7 @@
     .tab { font-size: 12px; padding: 10px 6px; }
     .duty-names { font-size: 20px; }
     header h1 { font-size: 20px; }
+    .login-btn { position: static; margin-top: 10px; width: 100%; }
   }
 </style>
 </head>
@@ -272,25 +291,37 @@
   <header>
     <h1>📚 Дежурные и рейтинг класса</h1>
     <p id="todayDate"></p>
-    <div class="sync-status syncing" id="syncStatus">🔄 Подключение к облаку...</div>
+    <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
+    <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
   </header>
 
-  <div class="tabs">
-    <div class="tab active" data-screen="today">🏠 Сегодня</div>
-    <div class="tab" data-screen="students">👥 Ученики</div>
-    <div class="tab" data-screen="rating">🏆 Рейтинг</div>
-    <div class="tab" data-screen="shop">🎁 Магазин</div>
-    <div class="tab" data-screen="history">📜 История</div>
+  <div class="tabs" id="tabsContainer">
+    <!-- Вкладки для всех -->
+    <div class="tab active" data-screen="today" id="tab-today">🏠 Дежурство и Рейтинг</div>
+    <div class="tab" data-screen="shop" id="tab-shop">🎁 Магазин</div>
+    
+    <!-- Вкладки только для учителя -->
+    <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
+    <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
+    <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
+    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</100>
   </div>
 
-  <!-- ЭКРАН: СЕГОДНЯ -->
+  <!-- ЭКРАН: СЕГОДНЯ + РЕЙТИНГ (Для всех) -->
   <div class="screen active" id="screen-today">
     <div class="duty-display">
       <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
       <div class="duty-names" id="dutyNames">Загрузка данных...</div>
     </div>
 
-    <div class="card">
+    <!-- Блок оценки виден ТОЛЬКО учителю -->
+    <div class="card teacher-only" id="rateSectionCard" style="display:none;">
+      <h2>⭐ Оценить дежурных</h2>
+      <div id="rateSection"></div>
+    </div>
+
+    <!-- Блок назначения виден ТОЛЬКО учителю -->
+    <div class="card teacher-only" id="assignSectionCard" style="display:none;">
       <h2>🎲 Назначить дежурных</h2>
       <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
       <label style="font-size:14px; font-weight:500;">Дата:</label>
@@ -302,29 +333,30 @@
       </div>
     </div>
 
+    <!-- Рейтинг (виден всем, но компактный) -->
     <div class="card">
-      <h2>⭐ Оценить дежурных</h2>
-      <div id="rateSection"></div>
+      <h2>🏆 Топ-5 класса</h2>
+      <div id="miniRatingList"></div>
     </div>
   </div>
 
-  <!-- ЭКРАН: УЧЕНИКИ -->
-  <div class="screen" id="screen-students">
+  <!-- ЭКРАН: УЧЕНИКИ (Только учитель) -->
+  <div class="screen teacher-only" id="screen-students" style="display:none;">
     <div class="card">
       <h2>👥 Список класса (<span id="studentCount">0</span> чел.)</h2>
       <div class="student-list" id="studentList"></div>
     </div>
   </div>
 
-  <!-- ЭКРАН: РЕЙТИНГ -->
-  <div class="screen" id="screen-rating">
+  <!-- ЭКРАН: ПОЛНЫЙ РЕЙТИНГ (Только учитель) -->
+  <div class="screen teacher-only" id="screen-rating" style="display:none;">
     <div class="card">
-      <h2>🏆 Рейтинг класса</h2>
+      <h2>🏆 Полный рейтинг класса</h2>
       <div id="ratingList"></div>
     </div>
   </div>
 
-  <!-- ЭКРАН: МАГАЗИН -->
+  <!-- ЭКРАН: МАГАЗИН (Для всех) -->
   <div class="screen" id="screen-shop">
     <div class="card">
       <h2>🎁 Магазин привилегий</h2>
@@ -339,11 +371,25 @@
     </div>
   </div>
 
-  <!-- ЭКРАН: ИСТОРИЯ -->
-  <div class="screen" id="screen-history">
+  <!-- ЭКРАН: ИСТОРИЯ (Только учитель) -->
+  <div class="screen teacher-only" id="screen-history" style="display:none;">
     <div class="card">
       <h2>📜 История операций</h2>
       <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН: НАСТРОЙКИ (Только учитель) -->
+  <div class="screen teacher-only" id="screen-settings" style="display:none;">
+    <div class="card">
+      <h2>⚙️ Резервное копирование</h2>
+      <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
+      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+      <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
+      <p style="color:#888; font-size:13px; margin-top:15px;">
+        Данные автоматически сохраняются в облаке. Экспорт нужен для полной резервной копии.
+      </p>
     </div>
   </div>
 </div>
@@ -362,7 +408,13 @@
 </div>
 
 <script>
-// ==================== ДАННЫЕ ====================
+// ==================== НАСТРОЙКИ ====================
+// ⚠️ ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ НА СВОЙ, ЕСЛИ ХОТИТЕ!
+const TEACHER_PASSWORD = "учитель"; 
+
+const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
+const DEFAULT_API_KEY = "$2a$10$FBvJgr8aQMZjyuqq8daruOJk/Iq2UcoW/HJst6WUhiVFtEYNkQ1q.";
+
 const DEFAULT_STUDENTS = [
   "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
   "Геллер Ксения", "Гилка Роман", "Джелялов Мурат", "Захарова Ангелина",
@@ -382,10 +434,6 @@ const PRIVILEGES = [
   { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
 ];
 
-// ==================== ОБЛАЧНЫЕ НАСТРОЙКИ (ВСТРОЕНЫ) ====================
-const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
-const DEFAULT_API_KEY = "$2a$10$FBvJgr8aQMZjyuqq8daruOJk/Iq2UcoW/HJst6WUhiVFtEYNkQ1q.";
-
 let cloudConfig = {
   apiKey: localStorage.getItem("cloudApiKey") || DEFAULT_API_KEY,
   binId: localStorage.getItem("cloudBinId") || DEFAULT_BIN_ID
@@ -400,8 +448,43 @@ let state = {
   boughtPrivileges: []
 };
 
+let isTeacher = false;
 let isSyncing = false;
 let pendingDuty = [];
+
+// ==================== АВТОРИЗАЦИЯ ====================
+function toggleTeacherMode() {
+  if (!isTeacher) {
+    const pass = prompt("Введите пароль учителя:");
+    if (pass === TEACHER_PASSWORD) {
+      isTeacher = true;
+      updateView();
+    } else if (pass !== null) {
+      alert("Неверный пароль!");
+    }
+  } else {
+    isTeacher = false;
+    updateView();
+  }
+}
+
+function updateView() {
+  const loginBtn = document.getElementById("loginBtn");
+  loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
+  loginBtn.classList.toggle("active", isTeacher);
+
+  // Показываем/скрываем элементы учителя
+  document.querySelectorAll(".teacher-only").forEach(el => {
+    el.style.display = isTeacher ? "block" : "none";
+  });
+
+  // Если вышли из режима учителя, переключаемся на главную вкладку
+  if (!isTeacher) {
+    document.querySelector('.tab[data-screen="today"]').click();
+  } else {
+    renderAll(); // Перерисовать всё, чтобы появились кнопки оценки
+  }
+}
 
 // ==================== ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ====================
 function updateSyncStatus(status, text) {
@@ -417,7 +500,7 @@ async function loadFromCloud() {
   }
   if (isSyncing) return;
   isSyncing = true;
-  updateSyncStatus("syncing", "🔄 Загрузка данных...");
+  updateSyncStatus("syncing", "🔄 Загрузка...");
 
   try {
     const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
@@ -426,20 +509,18 @@ async function loadFromCloud() {
     if (!response.ok) throw new Error("Ошибка: " + response.status);
     const data = await response.json();
     
-    // Если в облаке есть корректные данные с учениками, используем их
     if (data.record && data.record.students && data.record.students.length > 0) {
       state = data.record;
       localStorage.setItem("dutyService", JSON.stringify(state));
-      updateSyncStatus("online", "🟢 Данные загружены из облака");
+      updateSyncStatus("online", "🟢 Подключено");
     } else {
-      // Если облако пустое, сохраняем туда локальные данные по умолчанию
-      updateSyncStatus("syncing", "🔄 Инициализация облака...");
+      updateSyncStatus("syncing", "🔄 Инициализация...");
       await saveToCloud();
     }
     renderAll();
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка сети. Используем локальные данные.");
+    updateSyncStatus("offline", "🔴 Ошибка сети");
     renderAll();
   } finally {
     isSyncing = false;
@@ -450,7 +531,7 @@ async function saveToCloud() {
   if (!cloudConfig.apiKey || !cloudConfig.binId) return;
   if (isSyncing) return;
   isSyncing = true;
-  updateSyncStatus("syncing", "🔄 Сохранение в облако...");
+  updateSyncStatus("syncing", "🔄 Сохранение...");
 
   try {
     const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
@@ -462,10 +543,10 @@ async function saveToCloud() {
       body: JSON.stringify(state)
     });
     if (!response.ok) throw new Error("Ошибка: " + response.status);
-    updateSyncStatus("online", "🟢 Сохранено в облаке");
+    updateSyncStatus("online", "🟢 Сохранено");
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка сохранения");
+    updateSyncStatus("offline", "🔴 Ошибка");
   } finally {
     isSyncing = false;
   }
@@ -525,7 +606,7 @@ function weightedRandomPick(pool, count) {
   return result;
 }
 
-// ==================== ОТСУТСТВУЮЩИЕ ====================
+// ==================== ФУНКЦИИ РЕНДЕРИНГА ====================
 function renderAbsentList() {
   const list = document.getElementById("absentList");
   list.innerHTML = state.students.map(s => `
@@ -537,10 +618,8 @@ function renderAbsentList() {
   `).join("");
 }
 
-// ==================== РУЛЕТКА ====================
 function rollDuty() {
-  const absentIds = Array.from(document.querySelectorAll(".absent-check:checked"))
-    .map(c => parseInt(c.dataset.id));
+  const absentIds = Array.from(document.querySelectorAll(".absent-check:checked")).map(c => parseInt(c.dataset.id));
   const pool = state.students.filter(s => !absentIds.includes(s.id));
 
   if (pool.length < 2) {
@@ -599,7 +678,6 @@ function confirmDuty() {
   alert("✅ Дежурные назначены!");
 }
 
-// ==================== ОЦЕНКИ ====================
 function renderRateSection() {
   const section = document.getElementById("rateSection");
   const today = document.getElementById("dutyDate").value;
@@ -640,7 +718,6 @@ function rateStudent(id, delta) {
   renderAll();
 }
 
-// ==================== УЧЕНИКИ ====================
 function renderStudentList() {
   const list = document.getElementById("studentList");
   document.getElementById("studentCount").textContent = state.students.length;
@@ -704,11 +781,13 @@ function manualRate(id, delta) {
   renderAll();
 }
 
-// ==================== РЕЙТИНГ ====================
-function renderRating() {
-  const list = document.getElementById("ratingList");
+function renderRating(full = false) {
+  const targetId = full ? "ratingList" : "miniRatingList";
+  const list = document.getElementById(targetId);
   const sorted = [...state.students].sort((a, b) => b.points - a.points);
-  list.innerHTML = sorted.map((s, i) => {
+  const limit = full ? sorted.length : 5;
+  
+  list.innerHTML = sorted.slice(0, limit).map((s, i) => {
     const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
     const itemClass = i === 0 ? "top1" : i === 1 ? "top2" : i === 2 ? "top3" : "";
     const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
@@ -725,7 +804,6 @@ function renderRating() {
   }).join("");
 }
 
-// ==================== МАГАЗИН ====================
 function renderShop() {
   const select = document.getElementById("shopStudent");
   select.innerHTML = '<option value="">— Выберите ученика —</option>' +
@@ -799,7 +877,6 @@ function renderBoughtPrivileges() {
   `).join("");
 }
 
-// ==================== ИСТОРИЯ ====================
 function renderHistory() {
   const div = document.getElementById("historyList");
   if (!state.history.length) {
@@ -814,12 +891,12 @@ function renderHistory() {
   `).join("");
 }
 
-// ==================== ОБНОВЛЕНИЕ ВСЕГО ====================
 function renderAll() {
   renderAbsentList();
   renderRateSection();
   renderStudentList();
-  renderRating();
+  renderRating(true); // Полный рейтинг для учителя
+  renderRating(false); // Мини-рейтинг для всех
   renderShop();
   renderHistory();
 
@@ -838,11 +915,57 @@ function renderAll() {
 
 document.getElementById("dutyDate").addEventListener("change", renderAll);
 
-// ==================== СТАРТ ====================
-// При запуске сразу пытаемся загрузить данные из облака
-loadFromCloud();
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `duty-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-// Автообновление каждые 60 секунд (чтобы видеть изменения от других устройств)
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.students) throw new Error("Неверный формат");
+      if (confirm("Заменить текущие данные импортированными?")) {
+        state = data;
+        saveState();
+        renderAll();
+        alert("✅ Данные импортированы!");
+      }
+    } catch (err) {
+      alert("Ошибка импорта: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetData() {
+  if (confirm("⚠️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
+    if (confirm("Точно-точно? Все баллы, история, привилегии будут удалены.")) {
+      state = {
+        students: DEFAULT_STUDENTS.map((name, i) => ({
+          id: i + 1, name: name, points: 0, duties: 0, privileges: []
+        })),
+        schedule: [],
+        history: [],
+        boughtPrivileges: []
+      };
+      saveState();
+      renderAll();
+      alert("Данные сброшены.");
+    }
+  }
+}
+
+// ==================== СТАРТ ====================
+loadFromCloud();
 setInterval(() => {
   if (cloudConfig.apiKey && cloudConfig.binId && !isSyncing) {
     loadFromCloud();
