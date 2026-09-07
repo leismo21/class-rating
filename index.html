@@ -42,6 +42,7 @@
   }
   .login-btn:hover { background: #e0e0e0; }
   .login-btn.active { background: #667eea; color: white; }
+  .login-btn:disabled { opacity: 0.6; cursor: wait; }
 
   .sync-status {
     display: inline-block;
@@ -302,7 +303,7 @@
     <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
     <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
     <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
-    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">️ Настройки</div>
+    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</div>
   </div>
 
   <!-- ЭКРАН: СЕГОДНЯ + РЕЙТИНГ (Для всех) -->
@@ -318,7 +319,7 @@
     </div>
 
     <div class="card teacher-only" id="assignSectionCard" style="display:none;">
-      <h2>🎲 Назначить дежурных</h2>
+      <h2> Назначить дежурных</h2>
       <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
       <label style="font-size:14px; font-weight:500;">Дата:</label>
       <input type="date" id="dutyDate">
@@ -346,7 +347,7 @@
   <!-- ЭКРАН: ПОЛНЫЙ РЕЙТИНГ (Только учитель) -->
   <div class="screen teacher-only" id="screen-rating" style="display:none;">
     <div class="card">
-      <h2> Полный рейтинг класса</h2>
+      <h2>🏆 Полный рейтинг класса</h2>
       <div id="ratingList"></div>
     </div>
   </div>
@@ -360,7 +361,7 @@
     </div>
 
     <div class="card">
-      <h2> Купленные привилегии</h2>
+      <h2>🎫 Купленные привилегии</h2>
       <div id="boughtPrivileges"></div>
     </div>
 
@@ -385,7 +386,7 @@
     <div class="card">
       <h2>⚙️ Резервное копирование</h2>
       <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
-      <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()"> Импорт данных</button>
       <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
       <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
       <p style="color:#888; font-size:13px; margin-top:15px;">
@@ -401,7 +402,7 @@
     <h3>🎉 Выбраны дежурные!</h3>
     <div id="resultNames" style="font-size:20px; font-weight:600; text-align:center; padding:20px; color:#667eea;"></div>
     <div style="display:flex; gap:8px; justify-content:center;">
-      <button class="btn" onclick="rollDuty()"> Переиграть</button>
+      <button class="btn" onclick="rollDuty()">🔄 Переиграть</button>
       <button class="btn success" onclick="closeModal(); confirmDuty();">✓ Подтвердить</button>
       <button class="btn secondary" onclick="closeModal()">Отмена</button>
     </div>
@@ -410,10 +411,10 @@
 
 <script>
 // ==================== НАСТРОЙКИ ====================
-const TEACHER_PASSWORD = "ychitel6a";
+// ⚠️ ПАРОЛЯ ЗДЕСЬ НЕТ! Он хранится в вашем Bin на JSONBin в поле "teacherPassword"
 
 const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
-const DEFAULT_API_KEY = "$2a$10$FBvJgr8aQMZjyuqq8daruOJk/Iq2UcoW/HJst6WUhiVFtEYNkQ1q.";
+const DEFAULT_API_KEY = "$2a$10$42IbdBXbMxKwaxhwC5prnuskskVLHIErgQlMLdr5kbL87IfLAY59O";
 
 const DEFAULT_STUDENTS = [
   "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
@@ -431,7 +432,7 @@ const PRIVILEGES = [
   { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
   { id: 3, icon: "🪑", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
   { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
-  { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
+  { id: 5, icon: "", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
 ];
 
 let cloudConfig = {
@@ -451,16 +452,26 @@ let state = {
 let isTeacher = false;
 let isSyncing = false;
 let pendingDuty = [];
+let cachedTeacherPassword = null;
 
-// ==================== АВТОРИЗАЦИЯ ====================
-function toggleTeacherMode() {
+// ==================== АВТОРИЗАЦИЯ (пароль из облака) ====================
+async function toggleTeacherMode() {
+  const loginBtn = document.getElementById("loginBtn");
+  
   if (!isTeacher) {
+    if (cachedTeacherPassword === null) {
+      alert("⏳ Пароль ещё загружается из облака. Подождите несколько секунд и попробуйте снова.");
+      return;
+    }
+    
     const pass = prompt("Введите пароль учителя:");
-    if (pass === TEACHER_PASSWORD) {
+    if (pass === null) return;
+    
+    if (pass === cachedTeacherPassword) {
       isTeacher = true;
       updateView();
-    } else if (pass !== null) {
-      alert("Неверный пароль!");
+    } else {
+      alert("❌ Неверный пароль!");
     }
   } else {
     isTeacher = false;
@@ -470,28 +481,21 @@ function toggleTeacherMode() {
 
 function updateView() {
   const loginBtn = document.getElementById("loginBtn");
-  loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
+  loginBtn.textContent = isTeacher ? " Выйти из режима учителя" : " Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
 
-  // Показываем/скрываем элементы учителя
   document.querySelectorAll(".teacher-only").forEach(el => {
     el.style.display = isTeacher ? "block" : "none";
   });
 
-  // Переключаемся на первую вкладку "Дежурство и Рейтинг"
   switchTab("today");
-  
-  // Перерисовываем данные
   renderAll();
 }
 
 function switchTab(screenName) {
-  // Убираем активный класс со всех вкладок
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  // Скрываем все экраны
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   
-  // Активируем нужную вкладку
   const targetTab = document.querySelector(`.tab[data-screen="${screenName}"]`);
   const targetScreen = document.getElementById(`screen-${screenName}`);
   
@@ -527,15 +531,24 @@ async function loadFromCloud() {
     if (data.record && data.record.students && data.record.students.length > 0) {
       state = data.record;
       localStorage.setItem("dutyService", JSON.stringify(state));
+      
+      if (data.record.teacherPassword !== undefined) {
+        cachedTeacherPassword = data.record.teacherPassword;
+        console.log("✅ Пароль учителя загружен из облака");
+      } else {
+        cachedTeacherPassword = null;
+        console.warn("⚠️ Поле teacherPassword не найдено в Bin!");
+      }
+      
       updateSyncStatus("online", "🟢 Подключено");
     } else {
-      updateSyncStatus("syncing", "🔄 Инициализация...");
+      updateSyncStatus("syncing", " Инициализация...");
       await saveToCloud();
     }
     renderAll();
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", " Ошибка сети");
+    updateSyncStatus("offline", "🔴 Ошибка сети");
     renderAll();
   } finally {
     isSyncing = false;
@@ -558,7 +571,7 @@ async function saveToCloud() {
       body: JSON.stringify(state)
     });
     if (!response.ok) throw new Error("Ошибка: " + response.status);
-    updateSyncStatus("online", "🟢 Сохранено");
+    updateSyncStatus("online", " Сохранено");
   } catch (err) {
     console.error(err);
     updateSyncStatus("offline", "🔴 Ошибка");
@@ -820,7 +833,6 @@ function renderRating(full = false) {
 }
 
 function renderShop() {
-  // Для всех: показываем список привилегий (без кнопок покупки)
   const list = document.getElementById("privilegesList");
   if (list) {
     list.innerHTML = PRIVILEGES.map(p => `
@@ -835,7 +847,6 @@ function renderShop() {
     `).join("");
   }
 
-  // Для учителя: показываем админ-панель с выбором ученика и кнопками покупки
   if (isTeacher) {
     const select = document.getElementById("shopStudent");
     if (select) {
@@ -986,7 +997,7 @@ function importData(event) {
 }
 
 function resetData() {
-  if (confirm("⚠️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
+  if (confirm("️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
     if (confirm("Точно-точно? Все баллы, история, привилегии будут удалены.")) {
       state = {
         students: DEFAULT_STUDENTS.map((name, i) => ({
