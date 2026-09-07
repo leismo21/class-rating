@@ -260,16 +260,6 @@
     margin: 2px;
   }
 
-  .setup-box {
-    background: #fff3e0;
-    border: 2px solid #ff9800;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  .setup-box h3 { color: #ef6c00; margin-bottom: 10px; }
-  .setup-box p { font-size: 14px; color: #555; margin-bottom: 10px; }
-
   @media (max-width: 600px) {
     .tab { font-size: 12px; padding: 10px 6px; }
     .duty-names { font-size: 20px; }
@@ -282,7 +272,7 @@
   <header>
     <h1>📚 Дежурные и рейтинг класса</h1>
     <p id="todayDate"></p>
-    <div class="sync-status offline" id="syncStatus">⚪ Не подключено</div>
+    <div class="sync-status syncing" id="syncStatus">🔄 Подключение к облаку...</div>
   </header>
 
   <div class="tabs">
@@ -291,14 +281,13 @@
     <div class="tab" data-screen="rating">🏆 Рейтинг</div>
     <div class="tab" data-screen="shop">🎁 Магазин</div>
     <div class="tab" data-screen="history">📜 История</div>
-    <div class="tab" data-screen="settings">⚙️</div>
   </div>
 
   <!-- ЭКРАН: СЕГОДНЯ -->
   <div class="screen active" id="screen-today">
     <div class="duty-display">
       <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
-      <div class="duty-names" id="dutyNames">Нажмите кнопку ниже, чтобы выбрать дежурных</div>
+      <div class="duty-names" id="dutyNames">Загрузка данных...</div>
     </div>
 
     <div class="card">
@@ -357,44 +346,6 @@
       <div id="historyList"></div>
     </div>
   </div>
-
-  <!-- ЭКРАН: НАСТРОЙКИ -->
-  <div class="screen" id="screen-settings">
-    <div class="card">
-      <h2>☁️ Облачное хранилище</h2>
-      <div id="setupBox" class="setup-box">
-        <h3>🔧 Первоначальная настройка</h3>
-        <p>Чтобы данные хранились в облаке и были доступны с любого устройства:</p>
-        <ol style="font-size:14px; color:#555; margin-left:20px; margin-bottom:10px;">
-          <li>Зарегистрируйтесь на <a href="https://jsonbin.io" target="_blank">jsonbin.io</a></li>
-          <li>Скопируйте <strong>X-Master-Key</strong> из личного кабинета</li>
-          <li>Создайте новый Bin (кнопка «Create Bin»)</li>
-          <li>Скопируйте ID Bin из адресной строки (часть после <code>/b/</code>)</li>
-          <li>Вставьте оба значения ниже</li>
-        </ol>
-      </div>
-      <label style="font-size:14px; font-weight:500;">X-Master-Key (секретный ключ):</label>
-      <input type="password" id="apiKey" placeholder="$2a$10$xxxxxxxxx...">
-      <label style="font-size:14px; font-weight:500;">Bin ID:</label>
-      <input type="text" id="binId" placeholder="65abc123def456">
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-        <button class="btn success" onclick="saveCloudSettings()">💾 Сохранить и подключиться</button>
-        <button class="btn" onclick="loadFromCloud()">🔄 Загрузить из облака</button>
-        <button class="btn secondary" onclick="disconnectCloud()">Отключить облако</button>
-      </div>
-      <p style="color:#888; font-size:13px; margin-top:15px;">
-        💡 Ключ хранится только в вашем браузере. После подключения данные автоматически синхронизируются с облаком.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>⚙️ Резервное копирование</h2>
-      <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
-      <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
-      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
-      <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
-    </div>
-  </div>
 </div>
 
 <!-- МОДАЛКА: РЕЗУЛЬТАТ ВЫБОРА -->
@@ -431,7 +382,15 @@ const PRIVILEGES = [
   { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
 ];
 
-// ==================== СОСТОЯНИЕ ====================
+// ==================== ОБЛАЧНЫЕ НАСТРОЙКИ (ВСТРОЕНЫ) ====================
+const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
+const DEFAULT_API_KEY = "$2a$10$FBvJgr8aQMZjyuqq8daruOJk/Iq2UcoW/HJst6WUhiVFtEYNkQ1q.";
+
+let cloudConfig = {
+  apiKey: localStorage.getItem("cloudApiKey") || DEFAULT_API_KEY,
+  binId: localStorage.getItem("cloudBinId") || DEFAULT_BIN_ID
+};
+
 let state = {
   students: DEFAULT_STUDENTS.map((name, i) => ({
     id: i + 1, name: name, points: 0, duties: 0, privileges: []
@@ -441,12 +400,8 @@ let state = {
   boughtPrivileges: []
 };
 
-let cloudConfig = {
-  apiKey: localStorage.getItem("cloudApiKey") || "",
-  binId: localStorage.getItem("cloudBinId") || ""
-};
-
 let isSyncing = false;
+let pendingDuty = [];
 
 // ==================== ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ====================
 function updateSyncStatus(status, text) {
@@ -457,31 +412,35 @@ function updateSyncStatus(status, text) {
 
 async function loadFromCloud() {
   if (!cloudConfig.apiKey || !cloudConfig.binId) {
-    updateSyncStatus("offline", "⚪ Не подключено");
+    updateSyncStatus("offline", "⚪ Облако не подключено");
     return;
   }
   if (isSyncing) return;
   isSyncing = true;
-  updateSyncStatus("syncing", "🔄 Загрузка...");
+  updateSyncStatus("syncing", "🔄 Загрузка данных...");
 
   try {
     const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
       headers: { "X-Master-Key": cloudConfig.apiKey }
     });
-    if (!response.ok) throw new Error("Ошибка загрузки: " + response.status);
+    if (!response.ok) throw new Error("Ошибка: " + response.status);
     const data = await response.json();
-    if (data.record && Object.keys(data.record).length > 0) {
+    
+    // Если в облаке есть корректные данные с учениками, используем их
+    if (data.record && data.record.students && data.record.students.length > 0) {
       state = data.record;
       localStorage.setItem("dutyService", JSON.stringify(state));
-      updateSyncStatus("online", "🟢 Подключено");
-      renderAll();
+      updateSyncStatus("online", "🟢 Данные загружены из облака");
     } else {
-      // Пустое хранилище — загружаем туда текущие данные
+      // Если облако пустое, сохраняем туда локальные данные по умолчанию
+      updateSyncStatus("syncing", "🔄 Инициализация облака...");
       await saveToCloud();
     }
+    renderAll();
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка: " + err.message);
+    updateSyncStatus("offline", "🔴 Ошибка сети. Используем локальные данные.");
+    renderAll();
   } finally {
     isSyncing = false;
   }
@@ -491,7 +450,7 @@ async function saveToCloud() {
   if (!cloudConfig.apiKey || !cloudConfig.binId) return;
   if (isSyncing) return;
   isSyncing = true;
-  updateSyncStatus("syncing", "🔄 Сохранение...");
+  updateSyncStatus("syncing", "🔄 Сохранение в облако...");
 
   try {
     const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
@@ -502,11 +461,11 @@ async function saveToCloud() {
       },
       body: JSON.stringify(state)
     });
-    if (!response.ok) throw new Error("Ошибка сохранения: " + response.status);
+    if (!response.ok) throw new Error("Ошибка: " + response.status);
     updateSyncStatus("online", "🟢 Сохранено в облаке");
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка: " + err.message);
+    updateSyncStatus("offline", "🔴 Ошибка сохранения");
   } finally {
     isSyncing = false;
   }
@@ -515,50 +474,6 @@ async function saveToCloud() {
 function saveState() {
   localStorage.setItem("dutyService", JSON.stringify(state));
   saveToCloud();
-}
-
-function loadLocalState() {
-  const saved = localStorage.getItem("dutyService");
-  if (saved) {
-    try {
-      state = JSON.parse(saved);
-      return;
-    } catch(e) {}
-  }
-  state = {
-    students: DEFAULT_STUDENTS.map((name, i) => ({
-      id: i + 1, name: name, points: 0, duties: 0, privileges: []
-    })),
-    schedule: [],
-    history: [],
-    boughtPrivileges: []
-  };
-}
-
-// ==================== НАСТРОЙКИ ОБЛАКА ====================
-function saveCloudSettings() {
-  const key = document.getElementById("apiKey").value.trim();
-  const bin = document.getElementById("binId").value.trim();
-  if (!key || !bin) {
-    alert("Заполните оба поля!");
-    return;
-  }
-  cloudConfig.apiKey = key;
-  cloudConfig.binId = bin;
-  localStorage.setItem("cloudApiKey", key);
-  localStorage.setItem("cloudBinId", bin);
-  loadFromCloud();
-}
-
-function disconnectCloud() {
-  if (!confirm("Отключить облако? Данные останутся в этом браузере.")) return;
-  cloudConfig.apiKey = "";
-  cloudConfig.binId = "";
-  localStorage.removeItem("cloudApiKey");
-  localStorage.removeItem("cloudBinId");
-  updateSyncStatus("offline", "⚪ Не подключено");
-  document.getElementById("apiKey").value = "";
-  document.getElementById("binId").value = "";
 }
 
 // ==================== ВКЛАДКИ ====================
@@ -611,8 +526,6 @@ function weightedRandomPick(pool, count) {
 }
 
 // ==================== ОТСУТСТВУЮЩИЕ ====================
-let pendingDuty = [];
-
 function renderAbsentList() {
   const list = document.getElementById("absentList");
   list.innerHTML = state.students.map(s => `
@@ -901,57 +814,7 @@ function renderHistory() {
   `).join("");
 }
 
-// ==================== НАСТРОЙКИ ====================
-function exportData() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `duty-backup-${todayStr()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.students) throw new Error("Неверный формат");
-      if (confirm("Заменить текущие данные импортированными?")) {
-        state = data;
-        saveState();
-        renderAll();
-        alert("✅ Данные импортированы!");
-      }
-    } catch (err) {
-      alert("Ошибка импорта: " + err.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
-function resetData() {
-  if (confirm("⚠️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
-    if (confirm("Точно-точно? Все баллы, история, привилегии будут удалены.")) {
-      state = {
-        students: DEFAULT_STUDENTS.map((name, i) => ({
-          id: i + 1, name: name, points: 0, duties: 0, privileges: []
-        })),
-        schedule: [],
-        history: [],
-        boughtPrivileges: []
-      };
-      saveState();
-      renderAll();
-      alert("Данные сброшены.");
-    }
-  }
-}
-
-// ==================== ОБНОВЛЕНИЕ ====================
+// ==================== ОБНОВЛЕНИЕ ВСЕГО ====================
 function renderAll() {
   renderAbsentList();
   renderRateSection();
@@ -976,17 +839,8 @@ function renderAll() {
 document.getElementById("dutyDate").addEventListener("change", renderAll);
 
 // ==================== СТАРТ ====================
-document.getElementById("apiKey").value = cloudConfig.apiKey;
-document.getElementById("binId").value = cloudConfig.binId;
-loadLocalState();
-renderAll();
-
-// Если облако настроено — загружаем данные
-if (cloudConfig.apiKey && cloudConfig.binId) {
-  loadFromCloud();
-} else {
-  updateSyncStatus("offline", "⚪ Облако не подключено");
-}
+// При запуске сразу пытаемся загрузить данные из облака
+loadFromCloud();
 
 // Автообновление каждые 60 секунд (чтобы видеть изменения от других устройств)
 setInterval(() => {
