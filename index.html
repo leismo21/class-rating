@@ -42,7 +42,6 @@
   }
   .login-btn:hover { background: #e0e0e0; }
   .login-btn.active { background: #667eea; color: white; }
-  .login-btn:disabled { opacity: 0.6; cursor: wait; }
 
   .sync-status {
     display: inline-block;
@@ -66,12 +65,13 @@
   .error-box h3 { color: #c62828; margin-bottom: 10px; }
   .error-box code { 
     background: #f5f5f5; 
-    padding: 2px 6px; 
+    padding: 4px 8px; 
     border-radius: 4px; 
     font-family: monospace;
     display: block;
     margin: 8px 0;
     word-break: break-all;
+    font-size: 12px;
   }
 
   .tabs {
@@ -126,7 +126,6 @@
   }
   .btn:hover { background: #5568d3; transform: translateY(-2px); }
   .btn:active { transform: translateY(0); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn.secondary { background: #e0e0e0; color: #333; }
   .btn.secondary:hover { background: #d0d0d0; }
   .btn.success { background: #4caf50; }
@@ -312,22 +311,21 @@
   <header>
     <h1>📚 Дежурные и рейтинг 6А класса</h1>
     <p id="todayDate"></p>
-    <div class="sync-status syncing" id="syncStatus"> Подключение...</div>
+    <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
     <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
   </header>
 
   <div id="errorContainer"></div>
 
   <div class="tabs" id="tabsContainer">
-    <div class="tab active" data-screen="today" id="tab-today">🏠 Дежурство и Рейтинг</div>
+    <div class="tab active" data-screen="today" id="tab-today"> Дежурство и Рейтинг</div>
     <div class="tab" data-screen="shop" id="tab-shop">🎁 Магазин</div>
     <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
     <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
-    <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
+    <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;"> История</div>
     <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</div>
   </div>
 
-  <!-- ЭКРАН: СЕГОДНЯ + РЕЙТИНГ (Для всех) -->
   <div class="screen active" id="screen-today">
     <div class="duty-display">
       <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
@@ -352,12 +350,11 @@
     </div>
 
     <div class="card">
-      <h2>🏆 Рейтинг класса</h2>
+      <h2> Рейтинг класса</h2>
       <div id="miniRatingList"></div>
     </div>
   </div>
 
-  <!-- ЭКРАН: УЧЕНИКИ (Только учитель) -->
   <div class="screen teacher-only" id="screen-students" style="display:none;">
     <div class="card">
       <h2>👥 Список класса (<span id="studentCount">0</span> чел.)</h2>
@@ -365,15 +362,13 @@
     </div>
   </div>
 
-  <!-- ЭКРАН: ПОЛНЫЙ РЕЙТИНГ (Только учитель) -->
   <div class="screen teacher-only" id="screen-rating" style="display:none;">
     <div class="card">
-      <h2> Полный рейтинг класса</h2>
+      <h2>🏆 Полный рейтинг класса</h2>
       <div id="ratingList"></div>
     </div>
   </div>
 
-  <!-- ЭКРАН: МАГАЗИН (Для всех, но разный функционал) -->
   <div class="screen" id="screen-shop">
     <div class="card">
       <h2>🎁 Магазин привилегий</h2>
@@ -394,20 +389,18 @@
     </div>
   </div>
 
-  <!-- ЭКРАН: ИСТОРИЯ (Только учитель) -->
   <div class="screen teacher-only" id="screen-history" style="display:none;">
     <div class="card">
-      <h2>📜 История операций</h2>
+      <h2> История операций</h2>
       <div id="historyList"></div>
     </div>
   </div>
 
-  <!-- ЭКРАН: НАСТРОЙКИ (Только учитель) -->
   <div class="screen teacher-only" id="screen-settings" style="display:none;">
     <div class="card">
       <h2>⚙️ Резервное копирование</h2>
       <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
-      <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()"> Импорт данных</button>
       <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
       <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
       <p style="color:#888; font-size:13px; margin-top:15px;">
@@ -417,7 +410,6 @@
   </div>
 </div>
 
-<!-- МОДАЛКА: РЕЗУЛЬТАТ ВЫБОРА -->
 <div class="modal" id="resultModal">
   <div class="modal-content">
     <h3>🎉 Выбраны дежурные!</h3>
@@ -433,7 +425,7 @@
 <script>
 // ==================== НАСТРОЙКИ ====================
 const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
-const DEFAULT_API_KEY = "$2a$10$42IbdBXbMxKwaxhwC5prnuskskVLHIErgQlMLdr5kbL87IfLAY59O";
+const DEFAULT_API_KEY = "$2a$10$waQspdzeumTiJ/BxeaeCtuE7RaLCt4z3A3FrdOR86P5bj.eiN0jd2";
 
 const DEFAULT_STUDENTS = [
   "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
@@ -447,7 +439,7 @@ const DEFAULT_STUDENTS = [
 ];
 
 const PRIVILEGES = [
-  { id: 1, icon: "", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
+  { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
   { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
   { id: 3, icon: "🪑", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
   { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
@@ -474,36 +466,19 @@ let pendingDuty = [];
 let cachedTeacherPassword = null;
 let cloudLoadError = null;
 
-// ==================== ПОКАЗ ОШИБКИ ====================
-function showError(title, message, details = '') {
-  const container = document.getElementById("errorContainer");
-  container.innerHTML = `
-    <div class="error-box">
-      <h3>⚠️ ${title}</h3>
-      <p>${message}</p>
-      ${details ? `<code>${details}</code>` : ''}
-      <button class="btn" onclick="location.reload()" style="margin-top:10px;">🔄 Обновить страницу</button>
-    </div>
-  `;
-}
-
 // ==================== АВТОРИЗАЦИЯ ====================
 async function toggleTeacherMode() {
-  const loginBtn = document.getElementById("loginBtn");
-  
   if (!isTeacher) {
     if (cachedTeacherPassword === null) {
       if (cloudLoadError) {
-        alert(`❌ Ошибка подключения к облаку:\n${cloudLoadError}\n\nПроверьте консоль браузера (F12) для подробностей.`);
+        alert(`❌ Ошибка подключения к облаку:\n${cloudLoadError}\n\nПроверьте консоль браузера (F12).`);
       } else {
-        alert("⏳ Пароль ещё загружается из облака. Подождите несколько секунд и попробуйте снова.");
+        alert("⏳ Пароль ещё загружается из облака. Подождите несколько секунд.");
       }
       return;
     }
-    
     const pass = prompt("Введите пароль учителя:");
     if (pass === null) return;
-    
     if (pass === cachedTeacherPassword) {
       isTeacher = true;
       updateView();
@@ -549,14 +524,23 @@ function updateSyncStatus(status, text) {
   el.textContent = text;
 }
 
+function showError(title, message, details = '') {
+  const container = document.getElementById("errorContainer");
+  container.innerHTML = `
+    <div class="error-box">
+      <h3>⚠️ ${title}</h3>
+      <p>${message}</p>
+      ${details ? `<code>${details}</code>` : ''}
+      <button class="btn" onclick="location.reload()" style="margin-top:10px;">🔄 Обновить страницу</button>
+    </div>
+  `;
+}
+
 async function loadFromCloud() {
   if (!cloudConfig.apiKey || !cloudConfig.binId) {
-    updateSyncStatus("offline", " Облако не подключено");
-    showError("Ошибка конфигурации", "Не указан API ключ или Bin ID", 
-      `Bin ID: ${cloudConfig.binId}\nAPI Key: ${cloudConfig.apiKey.substring(0, 20)}...`);
+    updateSyncStatus("offline", "⚪ Облако не подключено");
     return;
   }
-  
   if (isSyncing) return;
   isSyncing = true;
   updateSyncStatus("syncing", "🔄 Загрузка...");
@@ -576,7 +560,7 @@ async function loadFromCloud() {
     }
     
     const data = await response.json();
-    console.log("✅ Данные получены:", data);
+    console.log("✅ Данные получены");
     
     if (data.record && data.record.students && data.record.students.length > 0) {
       state = data.record;
@@ -584,29 +568,29 @@ async function loadFromCloud() {
       
       if (data.record.teacherPassword !== undefined) {
         cachedTeacherPassword = data.record.teacherPassword;
-        console.log("✅ Пароль учителя загружен:", cachedTeacherPassword);
+        console.log("✅ Пароль учителя загружен");
       } else {
         cachedTeacherPassword = null;
         console.warn("⚠️ Поле teacherPassword не найдено в Bin!");
         showError("Отсутствует пароль", 
           "В вашем Bin на JSONBin не найдено поле teacherPassword. Добавьте его!",
-          'Откройте JSONBin, нажмите Edit и добавьте в начало:\n"teacherPassword": "ychitel6a",');
+          'Откройте JSONBin → Edit → добавьте в начало:\n"teacherPassword": "ychitel6a",');
       }
       
       updateSyncStatus("online", "🟢 Подключено");
     } else {
       console.warn("️ Bin пуст или некорректен");
-      updateSyncStatus("syncing", " Инициализация...");
+      updateSyncStatus("syncing", "🔄 Инициализация...");
       await saveToCloud();
     }
     renderAll();
   } catch (err) {
     console.error("❌ Ошибка загрузки:", err);
     cloudLoadError = err.message;
-    updateSyncStatus("offline", "🔴 Ошибка подключения");
+    updateSyncStatus("offline", " Ошибка подключения");
     showError("Ошибка сети", 
-      "Не удалось подключиться к JSONBin. Возможные причины:",
-      `1. JSONBin.io недоступен из вашего региона\n2. Неверный API ключ или Bin ID\n3. Превышен лимит запросов\n\nДетали: ${err.message}\n\nBin ID: ${cloudConfig.binId}`);
+      "Не удалось подключиться к JSONBin.",
+      `Bin ID: ${cloudConfig.binId}\nОшибка: ${err.message}`);
     renderAll();
   } finally {
     isSyncing = false;
@@ -1073,9 +1057,8 @@ function resetData() {
 }
 
 // ==================== СТАРТ ====================
-console.log("🚀 Загрузка приложения...");
+console.log(" Загрузка приложения...");
 console.log("Bin ID:", cloudConfig.binId);
-console.log("API Key:", cloudConfig.apiKey.substring(0, 20) + "...");
 
 loadFromCloud();
 setInterval(() => {
