@@ -56,24 +56,25 @@
 
   .tabs {
     display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     background: white;
     border-radius: 16px;
-    padding: 6px;
+    padding: 10px;
     margin-bottom: 20px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    overflow-x: auto;
   }
   .tab {
-    flex: 1;
-    padding: 12px 8px;
+    flex: 1 1 auto;
+    padding: 10px 12px;
     text-align: center;
     cursor: pointer;
     border-radius: 12px;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.3s;
     white-space: nowrap;
-    min-width: 80px;
+    min-width: 100px;
   }
   .tab.active { background: #667eea; color: white; }
   .tab:not(.active):hover { background: #f0f0f0; }
@@ -279,7 +280,7 @@
   }
 
   @media (max-width: 600px) {
-    .tab { font-size: 12px; padding: 10px 6px; }
+    .tab { font-size: 11px; padding: 8px 6px; min-width: 80px; }
     .duty-names { font-size: 20px; }
     header h1 { font-size: 20px; }
     .login-btn { position: static; margin-top: 10px; width: 100%; }
@@ -296,15 +297,12 @@
   </header>
 
   <div class="tabs" id="tabsContainer">
-    <!-- Вкладки для всех -->
     <div class="tab active" data-screen="today" id="tab-today">🏠 Дежурство и Рейтинг</div>
     <div class="tab" data-screen="shop" id="tab-shop">🎁 Магазин</div>
-    
-    <!-- Вкладки только для учителя -->
     <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
     <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
     <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
-    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</100>
+    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</div>
   </div>
 
   <!-- ЭКРАН: СЕГОДНЯ + РЕЙТИНГ (Для всех) -->
@@ -314,13 +312,11 @@
       <div class="duty-names" id="dutyNames">Загрузка данных...</div>
     </div>
 
-    <!-- Блок оценки виден ТОЛЬКО учителю -->
     <div class="card teacher-only" id="rateSectionCard" style="display:none;">
       <h2>⭐ Оценить дежурных</h2>
       <div id="rateSection"></div>
     </div>
 
-    <!-- Блок назначения виден ТОЛЬКО учителю -->
     <div class="card teacher-only" id="assignSectionCard" style="display:none;">
       <h2>🎲 Назначить дежурных</h2>
       <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
@@ -333,9 +329,8 @@
       </div>
     </div>
 
-    <!-- Рейтинг (виден всем, но компактный) -->
     <div class="card">
-      <h2>🏆 Топ-5 класса</h2>
+      <h2>🏆 Рейтинг класса</h2>
       <div id="miniRatingList"></div>
     </div>
   </div>
@@ -356,18 +351,24 @@
     </div>
   </div>
 
-  <!-- ЭКРАН: МАГАЗИН (Для всех) -->
+  <!-- ЭКРАН: МАГАЗИН (Для всех, но разный функционал) -->
   <div class="screen" id="screen-shop">
     <div class="card">
       <h2>🎁 Магазин привилегий</h2>
-      <p style="color:#666; font-size:14px; margin-bottom:15px;">Ученики могут обменять баллы на привилегии.</p>
-      <select id="shopStudent"></select>
+      <p style="color:#666; font-size:14px; margin-bottom:15px;">Здесь можно посмотреть доступные привилегии и их стоимость.</p>
       <div id="privilegesList"></div>
     </div>
 
     <div class="card">
       <h2>🎫 Купленные привилегии</h2>
       <div id="boughtPrivileges"></div>
+    </div>
+
+    <div class="card teacher-only" id="shopAdminCard" style="display:none;">
+      <h2>🛒 Выдать привилегию ученику</h2>
+      <p style="color:#666; font-size:14px; margin-bottom:15px;">Выберите ученика и привилегию для выдачи.</p>
+      <select id="shopStudent"></select>
+      <div id="adminPrivilegesList"></div>
     </div>
   </div>
 
@@ -400,7 +401,7 @@
     <h3>🎉 Выбраны дежурные!</h3>
     <div id="resultNames" style="font-size:20px; font-weight:600; text-align:center; padding:20px; color:#667eea;"></div>
     <div style="display:flex; gap:8px; justify-content:center;">
-      <button class="btn" onclick="rollDuty()">🔄 Переиграть</button>
+      <button class="btn" onclick="rollDuty()"> Переиграть</button>
       <button class="btn success" onclick="closeModal(); confirmDuty();">✓ Подтвердить</button>
       <button class="btn secondary" onclick="closeModal()">Отмена</button>
     </div>
@@ -409,8 +410,7 @@
 
 <script>
 // ==================== НАСТРОЙКИ ====================
-// ⚠️ ИЗМЕНИТЕ ЭТОТ ПАРОЛЬ НА СВОЙ, ЕСЛИ ХОТИТЕ!
-const TEACHER_PASSWORD = "учитель"; 
+const TEACHER_PASSWORD = "ychitel6a";
 
 const DEFAULT_BIN_ID = "6a9eeb94ffd5d16053ea1e57";
 const DEFAULT_API_KEY = "$2a$10$FBvJgr8aQMZjyuqq8daruOJk/Iq2UcoW/HJst6WUhiVFtEYNkQ1q.";
@@ -428,7 +428,7 @@ const DEFAULT_STUDENTS = [
 
 const PRIVILEGES = [
   { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
-  { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
+  { id: 2, icon: "", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
   { id: 3, icon: "🪑", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
   { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
   { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
@@ -473,16 +473,14 @@ function updateView() {
   loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
 
-  // Показываем/скрываем элементы учителя
   document.querySelectorAll(".teacher-only").forEach(el => {
     el.style.display = isTeacher ? "block" : "none";
   });
 
-  // Если вышли из режима учителя, переключаемся на главную вкладку
   if (!isTeacher) {
     document.querySelector('.tab[data-screen="today"]').click();
   } else {
-    renderAll(); // Перерисовать всё, чтобы появились кнопки оценки
+    renderAll();
   }
 }
 
@@ -514,7 +512,7 @@ async function loadFromCloud() {
       localStorage.setItem("dutyService", JSON.stringify(state));
       updateSyncStatus("online", "🟢 Подключено");
     } else {
-      updateSyncStatus("syncing", "🔄 Инициализация...");
+      updateSyncStatus("syncing", " Инициализация...");
       await saveToCloud();
     }
     renderAll();
@@ -543,7 +541,7 @@ async function saveToCloud() {
       body: JSON.stringify(state)
     });
     if (!response.ok) throw new Error("Ошибка: " + response.status);
-    updateSyncStatus("online", "🟢 Сохранено");
+    updateSyncStatus("online", " Сохранено");
   } catch (err) {
     console.error(err);
     updateSyncStatus("offline", "🔴 Ошибка");
@@ -785,9 +783,8 @@ function renderRating(full = false) {
   const targetId = full ? "ratingList" : "miniRatingList";
   const list = document.getElementById(targetId);
   const sorted = [...state.students].sort((a, b) => b.points - a.points);
-  const limit = full ? sorted.length : 5;
   
-  list.innerHTML = sorted.slice(0, limit).map((s, i) => {
+  list.innerHTML = sorted.map((s, i) => {
     const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
     const itemClass = i === 0 ? "top1" : i === 1 ? "top2" : i === 2 ? "top3" : "";
     const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
@@ -805,10 +802,7 @@ function renderRating(full = false) {
 }
 
 function renderShop() {
-  const select = document.getElementById("shopStudent");
-  select.innerHTML = '<option value="">— Выберите ученика —</option>' +
-    state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
-
+  // Для всех: показываем список привилегий (без кнопок покупки)
   const list = document.getElementById("privilegesList");
   list.innerHTML = PRIVILEGES.map(p => `
     <div class="privilege-card">
@@ -818,9 +812,28 @@ function renderShop() {
         <div class="privilege-desc">${p.desc}</div>
         <div class="privilege-price">${p.price} баллов</div>
       </div>
-      <button class="btn small success" onclick="buyPrivilege(${p.id})">Купить</button>
     </div>
   `).join("");
+
+  // Для учителя: показываем админ-панель с выбором ученика и кнопками покупки
+  if (isTeacher) {
+    const select = document.getElementById("shopStudent");
+    select.innerHTML = '<option value="">— Выберите ученика —</option>' +
+      state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
+
+    const adminList = document.getElementById("adminPrivilegesList");
+    adminList.innerHTML = PRIVILEGES.map(p => `
+      <div class="privilege-card">
+        <div class="privilege-icon">${p.icon}</div>
+        <div class="privilege-info">
+          <div class="privilege-name">${p.name}</div>
+          <div class="privilege-desc">${p.desc}</div>
+          <div class="privilege-price">${p.price} баллов</div>
+        </div>
+        <button class="btn small success" onclick="buyPrivilege(${p.id})">Выдать</button>
+      </div>
+    `).join("");
+  }
 
   renderBoughtPrivileges();
 }
@@ -834,7 +847,7 @@ function buyPrivilege(privId) {
     alert(`Недостаточно баллов! У ${student.name} ${student.points} б., нужно ${priv.price} б.`);
     return;
   }
-  if (!confirm(`Купить «${priv.name}» для ${student.name} за ${priv.price} б.?`)) return;
+  if (!confirm(`Выдать «${priv.name}» ученику ${student.name} за ${priv.price} б.?`)) return;
 
   student.points -= priv.price;
   state.boughtPrivileges.push({
@@ -851,7 +864,7 @@ function buyPrivilege(privId) {
     studentId: studentId,
     studentName: student.name,
     delta: -priv.price,
-    reason: `Покупка: ${priv.name}`
+    reason: `Выдано: ${priv.name}`
   });
   saveState();
   renderAll();
@@ -895,8 +908,8 @@ function renderAll() {
   renderAbsentList();
   renderRateSection();
   renderStudentList();
-  renderRating(true); // Полный рейтинг для учителя
-  renderRating(false); // Мини-рейтинг для всех
+  renderRating(true);
+  renderRating(false);
   renderShop();
   renderHistory();
 
