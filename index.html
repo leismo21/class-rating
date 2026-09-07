@@ -196,7 +196,8 @@
 const SUPABASE_URL = "https://skyvcfohmlrrdbzqmopr.supabase.co";
 const SUPABASE_KEY = "sb_publishable_LJbXjAwV4KMqqdxXP64-aA_TT0qh9bz";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Используем supabaseClient, чтобы избежать конфликтов имен с глобальной библиотекой
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const DEFAULT_STUDENTS = [
   "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
@@ -279,11 +280,11 @@ async function loadFromCloud() {
   updateSyncStatus("syncing", "🔄 Загрузка...");
 
   try {
-    const { data, error } = await supabase.from('app_data').select('data').eq('id', 1).single();
+    const { data, error } = await supabaseClient.from('app_data').select('data').eq('id', 1).single();
     
     if (error && error.code === 'PGRST116') {
       console.log("Создание новой записи в базе...");
-      const { error: insertError } = await supabase.from('app_data').insert({ id: 1, data: state });
+      const { error: insertError } = await supabaseClient.from('app_data').insert({ id: 1, data: state });
       if (insertError) throw insertError;
       updateSyncStatus("online", "🟢 Подключено (новая база)");
     } else if (error) {
@@ -307,7 +308,7 @@ async function saveToCloud() {
   isSyncing = true;
   updateSyncStatus("syncing", "🔄 Сохранение...");
   try {
-    const { error } = await supabase.from('app_data').upsert({ id: 1, data: state });
+    const { error } = await supabaseClient.from('app_data').upsert({ id: 1, data: state });
     if (error) throw error;
     updateSyncStatus("online", "🟢 Сохранено");
   } catch (err) {
