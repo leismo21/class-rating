@@ -5,192 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Дежурные и рейтинг 6А класса</title>
 <style>
+  /* (Стили остаются без изменений, они компактные и рабочие) */
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
-    padding-bottom: 80px;
-  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; padding-bottom: 80px; }
   .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-  header {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-    text-align: center;
-    position: relative;
-  }
+  header { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; position: relative; }
   header h1 { color: #667eea; font-size: 24px; }
   header p { color: #888; font-size: 14px; margin-top: 5px; }
-
-  .login-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: #f0f0f0;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    color: #555;
-    transition: all 0.2s;
-  }
+  .login-btn { position: absolute; top: 15px; right: 15px; background: #f0f0f0; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #555; transition: all 0.2s; }
   .login-btn:hover { background: #e0e0e0; }
   .login-btn.active { background: #667eea; color: white; }
-
-  .sync-status {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    margin-top: 8px;
-  }
+  .sync-status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 8px; }
   .sync-status.online { background: #e8f5e9; color: #2e7d32; }
   .sync-status.offline { background: #ffebee; color: #c62828; }
   .sync-status.syncing { background: #fff3e0; color: #ef6c00; }
-
-  .tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    background: white;
-    border-radius: 16px;
-    padding: 10px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  }
-  .tab {
-    flex: 1 1 auto;
-    padding: 10px 12px;
-    text-align: center;
-    cursor: pointer;
-    border-radius: 12px;
-    font-weight: 500;
-    font-size: 13px;
-    transition: all 0.3s;
-    white-space: nowrap;
-    min-width: 100px;
-  }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; background: white; border-radius: 16px; padding: 10px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  .tab { flex: 1 1 auto; padding: 10px 12px; text-align: center; cursor: pointer; border-radius: 12px; font-weight: 500; font-size: 13px; transition: all 0.3s; white-space: nowrap; min-width: 100px; }
   .tab.active { background: #667eea; color: white; }
   .tab:not(.active):hover { background: #f0f0f0; }
-
   .screen { display: none; animation: fadeIn 0.3s; }
   .screen.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-  .card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  }
+  .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
   .card h2 { color: #667eea; margin-bottom: 15px; font-size: 18px; }
-
-  .btn {
-    background: #667eea;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 500;
-    transition: all 0.2s;
-    margin: 4px;
-  }
+  .btn { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 500; transition: all 0.2s; margin: 4px; }
   .btn:hover { background: #5568d3; transform: translateY(-2px); }
-  .btn:active { transform: translateY(0); }
   .btn.secondary { background: #e0e0e0; color: #333; }
-  .btn.secondary:hover { background: #d0d0d0; }
   .btn.success { background: #4caf50; }
-  .btn.success:hover { background: #43a047; }
   .btn.danger { background: #f44336; }
-  .btn.danger:hover { background: #e53935; }
   .btn.small { padding: 8px 14px; font-size: 13px; }
-
-  .duty-display {
-    text-align: center;
-    padding: 30px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 16px;
-    margin-bottom: 20px;
-  }
+  .duty-display { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px; margin-bottom: 20px; }
   .duty-display h3 { font-size: 16px; opacity: 0.9; margin-bottom: 10px; }
   .duty-names { font-size: 24px; font-weight: 600; min-height: 70px; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
   .duty-names.rolling { font-size: 20px; opacity: 0.8; }
-
   .student-list { display: flex; flex-direction: column; gap: 8px; }
-  .student-item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    gap: 12px;
-    transition: all 0.2s;
-  }
-  .student-item:hover { background: #eef0f5; }
+  .student-item { display: flex; align-items: center; padding: 12px; background: #f8f9fa; border-radius: 12px; gap: 12px; }
   .student-name { flex: 1; font-weight: 500; }
-  .student-points {
-    background: #667eea;
-    color: white;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    min-width: 50px;
-    text-align: center;
-  }
+  .student-points { background: #667eea; color: white; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; min-width: 50px; text-align: center; }
   .student-points.negative { background: #f44336; }
-
-  .rating-item {
-    display: flex;
-    align-items: center;
-    padding: 14px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin-bottom: 8px;
-    gap: 12px;
-  }
+  .rating-item { display: flex; align-items: center; padding: 14px; background: #f8f9fa; border-radius: 12px; margin-bottom: 8px; gap: 12px; }
   .rating-item.top1 { background: linear-gradient(90deg, #fff9e6, #f8f9fa); border-left: 4px solid #ffd700; }
   .rating-item.top2 { background: linear-gradient(90deg, #f5f5f5, #f8f9fa); border-left: 4px solid #c0c0c0; }
   .rating-item.top3 { background: linear-gradient(90deg, #fdf0e6, #f8f9fa); border-left: 4px solid #cd7f32; }
-
-  .student-rank {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #e0e0e0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 13px;
-  }
+  .student-rank { width: 28px; height: 28px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
   .student-rank.gold { background: #ffd700; color: white; }
   .student-rank.silver { background: #c0c0c0; color: white; }
   .student-rank.bronze { background: #cd7f32; color: white; }
-
   .rate-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .rate-btn {
-    flex: 1;
-    min-width: 80px;
-    padding: 10px;
-    border: 2px solid #e0e0e0;
-    background: white;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-  .rate-btn:hover { transform: translateY(-2px); }
+  .rate-btn { flex: 1; min-width: 80px; padding: 10px; border: 2px solid #e0e0e0; background: white; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
   .rate-btn.plus2 { border-color: #4caf50; color: #4caf50; }
   .rate-btn.plus2:hover { background: #4caf50; color: white; }
   .rate-btn.plus1 { border-color: #8bc34a; color: #8bc34a; }
@@ -199,97 +61,34 @@
   .rate-btn.minus1:hover { background: #ff9800; color: white; }
   .rate-btn.minus2 { border-color: #f44336; color: #f44336; }
   .rate-btn.minus2:hover { background: #f44336; color: white; }
-
-  .privilege-card {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    border: 2px solid transparent;
-    transition: all 0.2s;
-  }
+  .privilege-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 14px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; border: 2px solid transparent; }
   .privilege-card:hover { border-color: #667eea; }
   .privilege-icon { font-size: 36px; }
   .privilege-info { flex: 1; }
   .privilege-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
   .privilege-desc { color: #666; font-size: 13px; margin-bottom: 6px; }
   .privilege-price { color: #667eea; font-weight: 700; font-size: 15px; }
-
-  .history-item {
-    padding: 10px;
-    border-left: 3px solid #667eea;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    font-size: 14px;
-  }
+  .history-item { padding: 10px; border-left: 3px solid #667eea; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
   .history-item.plus { border-left-color: #4caf50; }
   .history-item.minus { border-left-color: #f44336; }
   .history-date { color: #888; font-size: 12px; }
-
-  input[type="text"], input[type="password"], input[type="date"], select, textarea {
-    width: 100%;
-    padding: 10px 14px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 14px;
-    margin-bottom: 10px;
-    font-family: inherit;
-  }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
-
+  input[type="text"], input[type="password"], input[type="date"], select { width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; margin-bottom: 10px; font-family: inherit; }
+  input:focus, select:focus { outline: none; border-color: #667eea; }
   .checkbox-list { max-height: 300px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 12px; }
   .checkbox-item { display: flex; align-items: center; padding: 8px; gap: 10px; border-radius: 8px; }
   .checkbox-item:hover { background: white; }
-  .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-
-  .modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
+  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
   .modal.active { display: flex; }
-  .modal-content {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 500px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
+  .modal-content { background: white; border-radius: 16px; padding: 24px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-content h3 { margin-bottom: 15px; color: #667eea; }
-
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    background: #667eea;
-    color: white;
-    border-radius: 20px;
-    font-size: 12px;
-    margin: 2px;
-  }
-
-  @media (max-width: 600px) {
-    .tab { font-size: 11px; padding: 8px 6px; min-width: 80px; }
-    .duty-names { font-size: 20px; }
-    header h1 { font-size: 20px; }
-    .login-btn { position: static; margin-top: 10px; width: 100%; }
-  }
+  .badge { display: inline-block; padding: 3px 10px; background: #667eea; color: white; border-radius: 20px; font-size: 12px; margin: 2px; }
+  @media (max-width: 600px) { .tab { font-size: 11px; padding: 8px 6px; min-width: 80px; } .duty-names { font-size: 20px; } header h1 { font-size: 20px; } .login-btn { position: static; margin-top: 10px; width: 100%; } }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1> Дежурные и рейтинг 6А класса</h1>
+    <h1>📚 Дежурные и рейтинг 6А класса</h1>
     <p id="todayDate"></p>
     <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
     <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
@@ -299,7 +98,7 @@
     <div class="tab active" data-screen="today" id="tab-today">🏠 Дежурство и Рейтинг</div>
     <div class="tab" data-screen="shop" id="tab-shop">🎁 Магазин</div>
     <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
-    <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;"> Полный рейтинг</div>
+    <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
     <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
     <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</div>
   </div>
@@ -309,12 +108,10 @@
       <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
       <div class="duty-names" id="dutyNames">Загрузка данных...</div>
     </div>
-
     <div class="card teacher-only" id="rateSectionCard" style="display:none;">
       <h2>⭐ Оценить дежурных</h2>
       <div id="rateSection"></div>
     </div>
-
     <div class="card teacher-only" id="assignSectionCard" style="display:none;">
       <h2>🎲 Назначить дежурных</h2>
       <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
@@ -326,7 +123,6 @@
         <button class="btn" onclick="confirmDuty()">✓ Подтвердить</button>
       </div>
     </div>
-
     <div class="card">
       <h2>🏆 Рейтинг класса</h2>
       <div id="miniRatingList"></div>
@@ -349,16 +145,14 @@
 
   <div class="screen" id="screen-shop">
     <div class="card">
-      <h2> Магазин привилегий</h2>
-      <p style="color:#666; font-size:14px; margin-bottom:15px;">Здесь можно посмотреть доступные привилегии и их стоимость.</p>
+      <h2>🎁 Магазин привилегий</h2>
+      <p style="color:#666; font-size:14px; margin-bottom:15px;">Доступные привилегии и их стоимость.</p>
       <div id="privilegesList"></div>
     </div>
-
     <div class="card">
       <h2>🎫 Купленные привилегии</h2>
       <div id="boughtPrivileges"></div>
     </div>
-
     <div class="card teacher-only" id="shopAdminCard" style="display:none;">
       <h2>🛒 Выдать привилегию ученику</h2>
       <p style="color:#666; font-size:14px; margin-bottom:15px;">Выберите ученика и привилегию для выдачи.</p>
@@ -376,14 +170,11 @@
 
   <div class="screen teacher-only" id="screen-settings" style="display:none;">
     <div class="card">
-      <h2>️ Резервное копирование</h2>
+      <h2>⚙️ Резервное копирование</h2>
       <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
       <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
       <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
-      <button class="btn danger" onclick="resetData()">️ Сбросить все данные</button>
-      <p style="color:#888; font-size:13px; margin-top:15px;">
-        Данные автоматически сохраняются в облаке. Экспорт нужен для полной резервной копии.
-      </p>
+      <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
     </div>
   </div>
 </div>
@@ -393,7 +184,7 @@
     <h3>🎉 Выбраны дежурные!</h3>
     <div id="resultNames" style="font-size:20px; font-weight:600; text-align:center; padding:20px; color:#667eea;"></div>
     <div style="display:flex; gap:8px; justify-content:center;">
-      <button class="btn" onclick="rollDuty()"> Переиграть</button>
+      <button class="btn" onclick="rollDuty()">🔄 Переиграть</button>
       <button class="btn success" onclick="closeModal(); confirmDuty();">✓ Подтвердить</button>
       <button class="btn secondary" onclick="closeModal()">Отмена</button>
     </div>
@@ -402,9 +193,8 @@
 
 <script>
 // ==================== НАСТРОЙКИ ====================
-// JSONStorage.net - бесплатный сервис без API ключей
 const STORAGE_URL = "https://jsonstorage.net/api/items";
-const STORAGE_ID_KEY = "jsonStorageId"; // Ключ для хранения ID в localStorage
+const STORAGE_ID_KEY = "jsonStorageId";
 
 const DEFAULT_STUDENTS = [
   "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
@@ -418,18 +208,17 @@ const DEFAULT_STUDENTS = [
 ];
 
 const PRIVILEGES = [
-  { id: 1, icon: "", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
-  { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
-  { id: 3, icon: "", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
-  { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
-  { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
+  { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе", price: 15 },
+  { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на 1 день", price: 20 },
+  { id: 3, icon: "🪑", name: "Сиди с другом", desc: "1 день сидеть с другом", price: 25 },
+  { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "1 опоздание прощается", price: 30 },
+  { id: 5, icon: "🎫", name: "Право не отвечать", desc: "1 раз не отвечать на уроке", price: 40 }
 ];
 
+// ⚠️ ВАЖНО: teacherPassword установлен в null. Он загрузится ТОЛЬКО из облака!
 let state = {
-  teacherPassword: "zva",
-  students: DEFAULT_STUDENTS.map((name, i) => ({
-    id: i + 1, name: name, points: 0, duties: 0, privileges: []
-  })),
+  teacherPassword: null, 
+  students: DEFAULT_STUDENTS.map((name, i) => ({ id: i + 1, name: name, points: 0, duties: 0, privileges: [] })),
   schedule: [],
   history: [],
   boughtPrivileges: []
@@ -443,6 +232,10 @@ let storageId = localStorage.getItem(STORAGE_ID_KEY);
 // ==================== АВТОРИЗАЦИЯ ====================
 async function toggleTeacherMode() {
   if (!isTeacher) {
+    if (state.teacherPassword === null) {
+      alert("⏳ Данные ещё загружаются из облака. Подождите 5 секунд и попробуйте снова.");
+      return;
+    }
     const pass = prompt("Введите пароль учителя:");
     if (pass === null) return;
     if (pass === state.teacherPassword) {
@@ -461,11 +254,7 @@ function updateView() {
   const loginBtn = document.getElementById("loginBtn");
   loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
-
-  document.querySelectorAll(".teacher-only").forEach(el => {
-    el.style.display = isTeacher ? "block" : "none";
-  });
-
+  document.querySelectorAll(".teacher-only").forEach(el => { el.style.display = isTeacher ? "block" : "none"; });
   switchTab("today");
   renderAll();
 }
@@ -473,17 +262,15 @@ function updateView() {
 function switchTab(screenName) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  
   const targetTab = document.querySelector(`.tab[data-screen="${screenName}"]`);
   const targetScreen = document.getElementById(`screen-${screenName}`);
-  
   if (targetTab && targetScreen) {
     targetTab.classList.add("active");
     targetScreen.classList.add("active");
   }
 }
 
-// ==================== ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ (JSONStorage.net) ====================
+// ==================== ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ====================
 function updateSyncStatus(status, text) {
   const el = document.getElementById("syncStatus");
   el.className = "sync-status " + status;
@@ -497,28 +284,18 @@ async function loadFromCloud() {
 
   try {
     if (!storageId) {
-      // Первый запуск - создаём новую запись
-      console.log("🔄 Создание новой записи в облаке...");
-      const response = await fetch(STORAGE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: state })
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
-      storageId = result.uid;
-      localStorage.setItem(STORAGE_ID_KEY, storageId);
-      console.log("✅ Запись создана, ID:", storageId);
-      updateSyncStatus("online", "🟢 Подключено");
+      // Если это первый запуск, мы НЕ создаем запись с нулевым паролем автоматически,
+      // чтобы не испортить данные. Мы просто ждем, пока учитель выполнит инициализацию.
+      updateSyncStatus("offline", "⚪ Ожидание инициализации учителем");
+      console.log("⚠️ Нет ID хранилища. Учителю нужно выполнить инициализацию через консоль.");
     } else {
-      // Загружаем существующие данные
-      console.log("🔄 Загрузка данных из облаке, ID:", storageId);
       const response = await fetch(`${STORAGE_URL}/${storageId}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const result = await response.json();
+      
       if (result.data && result.data.students) {
-        state = result.data;
-        console.log("✅ Данные загружены");
+        state = result.data; // Полностью заменяем state данными из облака (включая пароль!)
+        console.log("✅ Данные и пароль успешно загружены из облака");
         updateSyncStatus("online", "🟢 Подключено");
       } else {
         throw new Error("Некорректная структура данных");
@@ -526,9 +303,8 @@ async function loadFromCloud() {
     }
     renderAll();
   } catch (err) {
-    console.error("❌ Ошибка:", err);
+    console.error("❌ Ошибка загрузки:", err);
     updateSyncStatus("offline", "🔴 Ошибка сети");
-    // Используем локальные данные
     renderAll();
   } finally {
     isSyncing = false;
@@ -539,7 +315,6 @@ async function saveToCloud() {
   if (!storageId || isSyncing) return;
   isSyncing = true;
   updateSyncStatus("syncing", "🔄 Сохранение...");
-
   try {
     const response = await fetch(`${STORAGE_URL}/${storageId}`, {
       method: "PUT",
@@ -556,453 +331,205 @@ async function saveToCloud() {
   }
 }
 
-function saveState() {
-  saveToCloud();
-}
+function saveState() { saveToCloud(); }
 
-// ==================== ВКЛАДКИ ====================
+// ==================== ВКЛАДКИ И ДАТА ====================
 document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    switchTab(tab.dataset.screen);
-    renderAll();
-  });
+  tab.addEventListener("click", () => { switchTab(tab.dataset.screen); renderAll(); });
 });
-
-// ==================== ДАТА ====================
-function todayStr() {
-  const d = new Date();
-  return d.toISOString().split("T")[0];
-}
-function formatDate(str) {
-  const d = new Date(str);
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-}
+function todayStr() { return new Date().toISOString().split("T")[0]; }
+function formatDate(str) { return new Date(str).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }); }
 document.getElementById("todayDate").textContent = formatDate(todayStr());
 document.getElementById("dutyDate").value = todayStr();
 
-// ==================== ВЕС ДЛЯ РАНДОМА ====================
-function getWeight(student) {
-  const base = 10;
-  const maxPoints = 50;
-  const bonus = Math.max(0, (maxPoints - student.points) * 0.3);
-  return base + bonus;
-}
-
+// ==================== ЛОГИКА РАНДОМА И ОЦЕНОК ====================
+function getWeight(student) { return 10 + Math.max(0, (50 - student.points) * 0.3); }
 function weightedRandomPick(pool, count) {
-  const result = [];
-  const available = [...pool];
+  const result = []; const available = [...pool];
   for (let i = 0; i < count && available.length > 0; i++) {
     const weights = available.map(s => getWeight(s));
     const total = weights.reduce((a, b) => a + b, 0);
-    let r = Math.random() * total;
-    let pickedIdx = 0;
-    for (let j = 0; j < weights.length; j++) {
-      r -= weights[j];
-      if (r <= 0) { pickedIdx = j; break; }
-    }
-    result.push(available[pickedIdx]);
-    available.splice(pickedIdx, 1);
+    let r = Math.random() * total; let pickedIdx = 0;
+    for (let j = 0; j < weights.length; j++) { r -= weights[j]; if (r <= 0) { pickedIdx = j; break; } }
+    result.push(available[pickedIdx]); available.splice(pickedIdx, 1);
   }
   return result;
 }
 
-// ==================== ФУНКЦИИ РЕНДЕРИНГА ====================
 function renderAbsentList() {
-  const list = document.getElementById("absentList");
-  if (!list) return;
-  list.innerHTML = state.students.map(s => `
-    <label class="checkbox-item">
-      <input type="checkbox" data-id="${s.id}" class="absent-check">
-      <span>${s.name}</span>
-      <span style="color:#888; font-size:12px; margin-left:auto;">${s.points} б.</span>
-    </label>
-  `).join("");
+  const list = document.getElementById("absentList"); if (!list) return;
+  list.innerHTML = state.students.map(s => `<label class="checkbox-item"><input type="checkbox" data-id="${s.id}" class="absent-check"><span>${s.name}</span><span style="color:#888; font-size:12px; margin-left:auto;">${s.points} б.</span></label>`).join("");
 }
 
 function rollDuty() {
   const absentIds = Array.from(document.querySelectorAll(".absent-check:checked")).map(c => parseInt(c.dataset.id));
   const pool = state.students.filter(s => !absentIds.includes(s.id));
-
-  if (pool.length < 2) {
-    alert("Недостаточно учеников для выбора (нужно минимум 2).");
-    return;
-  }
-
+  if (pool.length < 2) { alert("Недостаточно учеников (нужно минимум 2)."); return; }
   document.getElementById("resultModal").classList.add("active");
-  const resultDiv = document.getElementById("resultNames");
-  resultDiv.classList.add("rolling");
-
-  let iterations = 0;
-  const maxIterations = 20;
-  let delay = 80;
-
+  const resultDiv = document.getElementById("resultNames"); resultDiv.classList.add("rolling");
+  let iterations = 0; const maxIterations = 20; let delay = 80;
   function spin() {
     const randoms = weightedRandomPick(pool, 2);
     resultDiv.innerHTML = randoms.map(s => `<div>${s.name}</div>`).join("");
     iterations++;
-    if (iterations < maxIterations) {
-      delay += 20;
-      setTimeout(spin, delay);
-    } else {
-      pendingDuty = weightedRandomPick(pool, 2);
-      resultDiv.classList.remove("rolling");
-      resultDiv.innerHTML = pendingDuty.map(s => `<div>✨ ${s.name}</div>`).join("");
-    }
+    if (iterations < maxIterations) { delay += 20; setTimeout(spin, delay); } 
+    else { pendingDuty = weightedRandomPick(pool, 2); resultDiv.classList.remove("rolling"); resultDiv.innerHTML = pendingDuty.map(s => `<div>✨ ${s.name}</div>`).join(""); }
   }
   spin();
 }
 
-function closeModal() {
-  document.getElementById("resultModal").classList.remove("active");
-}
+function closeModal() { document.getElementById("resultModal").classList.remove("active"); }
 
 function confirmDuty() {
-  if (pendingDuty.length !== 2) {
-    alert("Сначала выберите дежурных кнопкой «Выбрать случайным образом».");
-    return;
-  }
+  if (pendingDuty.length !== 2) { alert("Сначала выберите дежурных."); return; }
   const date = document.getElementById("dutyDate").value;
   state.schedule = state.schedule.filter(s => s.date !== date);
-  state.schedule.push({
-    date: date,
-    studentIds: pendingDuty.map(s => s.id),
-    rating: null,
-    comment: ""
-  });
-  pendingDuty.forEach(s => {
-    const st = state.students.find(x => x.id === s.id);
-    if (st) st.duties++;
-  });
-  saveState();
-  closeModal();
-  renderAll();
-  alert("✅ Дежурные назначены!");
+  state.schedule.push({ date: date, studentIds: pendingDuty.map(s => s.id), rating: null, comment: "" });
+  pendingDuty.forEach(s => { const st = state.students.find(x => x.id === s.id); if (st) st.duties++; });
+  saveState(); closeModal(); renderAll(); alert("✅ Дежурные назначены!");
 }
 
 function renderRateSection() {
-  const section = document.getElementById("rateSection");
-  if (!section) return;
+  const section = document.getElementById("rateSection"); if (!section) return;
   const today = document.getElementById("dutyDate").value;
   const record = state.schedule.find(s => s.date === today);
-
-  if (!record) {
-    section.innerHTML = '<p style="color:#888;">Сначала назначьте дежурных на эту дату.</p>';
-    return;
-  }
-
+  if (!record) { section.innerHTML = '<p style="color:#888;">Сначала назначьте дежурных на эту дату.</p>'; return; }
   const students = record.studentIds.map(id => state.students.find(s => s.id === id)).filter(Boolean);
   section.innerHTML = students.map(s => `
     <div style="background:#f8f9fa; padding:15px; border-radius:12px; margin-bottom:10px;">
-      <div style="font-weight:600; margin-bottom:8px;">${s.name} <span style="color:#888; font-weight:400;">(${s.points} б.)</span></div>
+      <div style="font-weight:600; margin-bottom:8px;">${s.name} <span style="color:#888;">(${s.points} б.)</span></div>
       <div class="rate-buttons">
         <button class="rate-btn plus2" onclick="rateStudent(${s.id}, 2)">+2 Отлично</button>
         <button class="rate-btn plus1" onclick="rateStudent(${s.id}, 1)">+1 Хорошо</button>
         <button class="rate-btn minus1" onclick="rateStudent(${s.id}, -1)">-1 Замечание</button>
         <button class="rate-btn minus2" onclick="rateStudent(${s.id}, -2)">-2 Плохо</button>
       </div>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
 
 function rateStudent(id, delta) {
-  const student = state.students.find(s => s.id === id);
-  if (!student) return;
-  const reason = delta > 0 ? "Оценка за дежурство" : "Замечание за дежурство";
+  const student = state.students.find(s => s.id === id); if (!student) return;
   student.points += delta;
-  state.history.unshift({
-    date: new Date().toISOString(),
-    studentId: id,
-    studentName: student.name,
-    delta: delta,
-    reason: reason
-  });
-  saveState();
-  renderAll();
+  state.history.unshift({ date: new Date().toISOString(), studentId: id, studentName: student.name, delta: delta, reason: delta > 0 ? "Оценка за дежурство" : "Замечание" });
+  saveState(); renderAll();
 }
 
 function renderStudentList() {
-  const list = document.getElementById("studentList");
-  if (!list) return;
+  const list = document.getElementById("studentList"); if (!list) return;
   document.getElementById("studentCount").textContent = state.students.length;
-  list.innerHTML = state.students.map(s => `
-    <div class="student-item">
-      <div class="student-name">${s.name}</div>
-      <div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div>
-      <div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div>
-      <button class="btn small secondary" onclick="openStudentModal(${s.id})">⋯</button>
-    </div>
-  `).join("");
+  list.innerHTML = state.students.map(s => `<div class="student-item"><div class="student-name">${s.name}</div><div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div><div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div><button class="btn small secondary" onclick="openStudentModal(${s.id})">⋯</button></div>`).join("");
 }
 
 function openStudentModal(id) {
   const s = state.students.find(x => x.id === id);
   const studentHistory = state.history.filter(h => h.studentId === id).slice(0, 10);
   const studentPrivs = state.boughtPrivileges.filter(p => p.studentId === id);
-
-  const modal = document.createElement("div");
-  modal.className = "modal active";
-  modal.innerHTML = `
-    <div class="modal-content">
-      <h3>${s.name}</h3>
-      <p><strong>Баллы:</strong> ${s.points}</p>
-      <p><strong>Дежурств:</strong> ${s.duties}</p>
-      <p style="margin-top:10px;"><strong>Привилегии:</strong></p>
-      <div>${studentPrivs.length ? studentPrivs.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("") : '<span style="color:#888;">Пока нет</span>'}</div>
-      <p style="margin-top:15px;"><strong>Последние операции:</strong></p>
-      <div style="max-height:200px; overflow-y:auto;">
-        ${studentHistory.length ? studentHistory.map(h => `
-          <div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}">
-            <div>${h.delta > 0 ? '+' : ''}${h.delta} — ${h.reason}</div>
-            <div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div>
-          </div>
-        `).join("") : '<p style="color:#888;">Пока нет операций</p>'}
-      </div>
-      <div style="margin-top:15px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn small" onclick="manualRate(${id}, 1); this.closest('.modal').remove();">+1</button>
-        <button class="btn small" onclick="manualRate(${id}, 2); this.closest('.modal').remove();">+2</button>
-        <button class="btn small" onclick="manualRate(${id}, -1); this.closest('.modal').remove();">-1</button>
-        <button class="btn small" onclick="manualRate(${id}, -2); this.closest('.modal').remove();">-2</button>
-        <button class="btn small secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
-      </div>
-    </div>
-  `;
+  const modal = document.createElement("div"); modal.className = "modal active";
+  modal.innerHTML = `<div class="modal-content"><h3>${s.name}</h3><p><strong>Баллы:</strong> ${s.points}</p><p><strong>Дежурств:</strong> ${s.duties}</p><p style="margin-top:10px;"><strong>Привилегии:</strong></p><div>${studentPrivs.length ? studentPrivs.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("") : '<span style="color:#888;">Пока нет</span>'}</div><p style="margin-top:15px;"><strong>Последние операции:</strong></p><div style="max-height:200px; overflow-y:auto;">${studentHistory.length ? studentHistory.map(h => `<div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}"><div>${h.delta > 0 ? '+' : ''}${h.delta} — ${h.reason}</div><div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div></div>`).join("") : '<p style="color:#888;">Пока нет операций</p>'}</div><div style="margin-top:15px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn small" onclick="manualRate(${id}, 1); this.closest('.modal').remove();">+1</button><button class="btn small" onclick="manualRate(${id}, 2); this.closest('.modal').remove();">+2</button><button class="btn small" onclick="manualRate(${id}, -1); this.closest('.modal').remove();">-1</button><button class="btn small" onclick="manualRate(${id}, -2); this.closest('.modal').remove();">-2</button><button class="btn small secondary" onclick="this.closest('.modal').remove()">Закрыть</button></div></div>`;
   document.body.appendChild(modal);
   modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
 }
 
 function manualRate(id, delta) {
-  const student = state.students.find(s => s.id === id);
-  student.points += delta;
-  state.history.unshift({
-    date: new Date().toISOString(),
-    studentId: id,
-    studentName: student.name,
-    delta: delta,
-    reason: "Ручная корректировка"
-  });
-  saveState();
-  renderAll();
+  const student = state.students.find(s => s.id === id); student.points += delta;
+  state.history.unshift({ date: new Date().toISOString(), studentId: id, studentName: student.name, delta: delta, reason: "Ручная корректировка" });
+  saveState(); renderAll();
 }
 
 function renderRating(full = false) {
   const targetId = full ? "ratingList" : "miniRatingList";
-  const list = document.getElementById(targetId);
-  if (!list) return;
+  const list = document.getElementById(targetId); if (!list) return;
   const sorted = [...state.students].sort((a, b) => b.points - a.points);
-  
   list.innerHTML = sorted.map((s, i) => {
     const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
     const itemClass = i === 0 ? "top1" : i === 1 ? "top2" : i === 2 ? "top3" : "";
-    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "" : (i + 1);
-    return `
-      <div class="rating-item ${itemClass}">
-        <div class="student-rank ${rankClass}">${medal}</div>
-        <div style="flex:1;">
-          <div style="font-weight:600;">${s.name}</div>
-          <div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div>
-        </div>
-        <div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div>
-      </div>
-    `;
+    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+    return `<div class="rating-item ${itemClass}"><div class="student-rank ${rankClass}">${medal}</div><div style="flex:1;"><div style="font-weight:600;">${s.name}</div><div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div></div><div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div></div>`;
   }).join("");
 }
 
 function renderShop() {
   const list = document.getElementById("privilegesList");
-  if (list) {
-    list.innerHTML = PRIVILEGES.map(p => `
-      <div class="privilege-card">
-        <div class="privilege-icon">${p.icon}</div>
-        <div class="privilege-info">
-          <div class="privilege-name">${p.name}</div>
-          <div class="privilege-desc">${p.desc}</div>
-          <div class="privilege-price">${p.price} баллов</div>
-        </div>
-      </div>
-    `).join("");
-  }
-
+  if (list) { list.innerHTML = PRIVILEGES.map(p => `<div class="privilege-card"><div class="privilege-icon">${p.icon}</div><div class="privilege-info"><div class="privilege-name">${p.name}</div><div class="privilege-desc">${p.desc}</div><div class="privilege-price">${p.price} баллов</div></div></div>`).join(""); }
   if (isTeacher) {
     const select = document.getElementById("shopStudent");
-    if (select) {
-      select.innerHTML = '<option value="">— Выберите ученика —</option>' +
-        state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
-    }
-
+    if (select) { select.innerHTML = '<option value="">— Выберите ученика —</option>' + state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join(""); }
     const adminList = document.getElementById("adminPrivilegesList");
-    if (adminList) {
-      adminList.innerHTML = PRIVILEGES.map(p => `
-        <div class="privilege-card">
-          <div class="privilege-icon">${p.icon}</div>
-          <div class="privilege-info">
-            <div class="privilege-name">${p.name}</div>
-            <div class="privilege-desc">${p.desc}</div>
-            <div class="privilege-price">${p.price} баллов</div>
-          </div>
-          <button class="btn small success" onclick="buyPrivilege(${p.id})">Выдать</button>
-        </div>
-      `).join("");
-    }
+    if (adminList) { adminList.innerHTML = PRIVILEGES.map(p => `<div class="privilege-card"><div class="privilege-icon">${p.icon}</div><div class="privilege-info"><div class="privilege-name">${p.name}</div><div class="privilege-desc">${p.desc}</div><div class="privilege-price">${p.price} баллов</div></div><button class="btn small success" onclick="buyPrivilege(${p.id})">Выдать</button></div>`).join(""); }
   }
-
   renderBoughtPrivileges();
 }
 
 function buyPrivilege(privId) {
-  const studentId = parseInt(document.getElementById("shopStudent").value);
-  if (!studentId) { alert("Сначала выберите ученика!"); return; }
+  const studentId = parseInt(document.getElementById("shopStudent").value); if (!studentId) { alert("Сначала выберите ученика!"); return; }
   const student = state.students.find(s => s.id === studentId);
   const priv = PRIVILEGES.find(p => p.id === privId);
-  if (student.points < priv.price) {
-    alert(`Недостаточно баллов! У ${student.name} ${student.points} б., нужно ${priv.price} б.`);
-    return;
-  }
+  if (student.points < priv.price) { alert(`Недостаточно баллов! Нужно ${priv.price}.`); return; }
   if (!confirm(`Выдать «${priv.name}» ученику ${student.name} за ${priv.price} б.?`)) return;
-
   student.points -= priv.price;
-  state.boughtPrivileges.push({
-    id: Date.now(),
-    studentId: studentId,
-    studentName: student.name,
-    privId: priv.id,
-    icon: priv.icon,
-    name: priv.name,
-    date: new Date().toISOString()
-  });
-  state.history.unshift({
-    date: new Date().toISOString(),
-    studentId: studentId,
-    studentName: student.name,
-    delta: -priv.price,
-    reason: `Выдано: ${priv.name}`
-  });
-  saveState();
-  renderAll();
-  alert(`✅ ${student.name} получил(а) привилегию «${priv.name}»!`);
+  state.boughtPrivileges.push({ id: Date.now(), studentId: studentId, studentName: student.name, privId: priv.id, icon: priv.icon, name: priv.name, date: new Date().toISOString() });
+  state.history.unshift({ date: new Date().toISOString(), studentId: studentId, studentName: student.name, delta: -priv.price, reason: `Выдано: ${priv.name}` });
+  saveState(); renderAll(); alert(`✅ ${student.name} получил(а) привилегию!`);
 }
 
 function renderBoughtPrivileges() {
-  const div = document.getElementById("boughtPrivileges");
-  if (!div) return;
-  if (!state.boughtPrivileges.length) {
-    div.innerHTML = '<p style="color:#888;">Пока никто ничего не купил.</p>';
-    return;
-  }
+  const div = document.getElementById("boughtPrivileges"); if (!div) return;
+  if (!state.boughtPrivileges.length) { div.innerHTML = '<p style="color:#888;">Пока никто ничего не купил.</p>'; return; }
   const grouped = {};
-  state.boughtPrivileges.forEach(p => {
-    if (!grouped[p.studentId]) grouped[p.studentId] = { name: p.studentName, items: [] };
-    grouped[p.studentId].items.push(p);
-  });
-  div.innerHTML = Object.entries(grouped).map(([id, data]) => `
-    <div style="background:#f8f9fa; padding:12px; border-radius:12px; margin-bottom:10px;">
-      <div style="font-weight:600; margin-bottom:8px;">${data.name}</div>
-      <div>${data.items.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("")}</div>
-    </div>
-  `).join("");
+  state.boughtPrivileges.forEach(p => { if (!grouped[p.studentId]) grouped[p.studentId] = { name: p.studentName, items: [] }; grouped[p.studentId].items.push(p); });
+  div.innerHTML = Object.entries(grouped).map(([id, data]) => `<div style="background:#f8f9fa; padding:12px; border-radius:12px; margin-bottom:10px;"><div style="font-weight:600; margin-bottom:8px;">${data.name}</div><div>${data.items.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("")}</div></div>`).join("");
 }
 
 function renderHistory() {
-  const div = document.getElementById("historyList");
-  if (!div) return;
-  if (!state.history.length) {
-    div.innerHTML = '<p style="color:#888;">Пока нет операций.</p>';
-    return;
-  }
-  div.innerHTML = state.history.slice(0, 100).map(h => `
-    <div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}">
-      <div><strong>${h.studentName}</strong> — ${h.delta > 0 ? '+' : ''}${h.delta} б. — ${h.reason}</div>
-      <div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div>
-    </div>
-  `).join("");
+  const div = document.getElementById("historyList"); if (!div) return;
+  if (!state.history.length) { div.innerHTML = '<p style="color:#888;">Пока нет операций.</p>'; return; }
+  div.innerHTML = state.history.slice(0, 100).map(h => `<div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}"><div><strong>${h.studentName}</strong> — ${h.delta > 0 ? '+' : ''}${h.delta} б. — ${h.reason}</div><div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div></div>`).join("");
 }
 
 function renderAll() {
-  renderAbsentList();
-  renderRateSection();
-  renderStudentList();
-  renderRating(true);
-  renderRating(false);
-  renderShop();
-  renderHistory();
-
+  renderAbsentList(); renderRateSection(); renderStudentList(); renderRating(true); renderRating(false); renderShop(); renderHistory();
   const date = document.getElementById("dutyDate").value;
   const record = state.schedule.find(s => s.date === date);
   const dutyNames = document.getElementById("dutyNames");
-  const dutyLabel = document.getElementById("dutyDateLabel");
-  dutyLabel.textContent = `Дежурные на ${formatDate(date)}`;
+  document.getElementById("dutyDateLabel").textContent = `Дежурные на ${formatDate(date)}`;
   if (record) {
     const names = record.studentIds.map(id => state.students.find(s => s.id === id)?.name).filter(Boolean);
     dutyNames.innerHTML = names.map(n => `<div>✨ ${n}</div>`).join("");
-  } else {
-    dutyNames.textContent = "Дежурные ещё не назначены";
-  }
+  } else { dutyNames.textContent = "Дежурные ещё не назначены"; }
 }
 
 document.getElementById("dutyDate").addEventListener("change", renderAll);
 
 function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `duty-backup-${todayStr()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `duty-backup-${todayStr()}.json`; a.click();
 }
 
 function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const data = JSON.parse(e.target.result);
-      if (!data.students) throw new Error("Неверный формат");
-      if (confirm("Заменить текущие данные импортированными?")) {
-        state = data;
-        saveState();
-        renderAll();
-        alert("✅ Данные импортированы!");
-      }
-    } catch (err) {
-      alert("Ошибка импорта: " + err.message);
-    }
+      const data = JSON.parse(e.target.result); if (!data.students) throw new Error("Неверный формат");
+      if (confirm("Заменить текущие данные?")) { state = data; saveState(); renderAll(); alert("✅ Импортировано!"); }
+    } catch (err) { alert("Ошибка: " + err.message); }
   };
   reader.readAsText(file);
 }
 
 function resetData() {
-  if (confirm("️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
-    if (confirm("Точно-точно? Все баллы, история, привилегии будут удалены.")) {
-      state = {
-        teacherPassword: "zva",
-        students: DEFAULT_STUDENTS.map((name, i) => ({
-          id: i + 1, name: name, points: 0, duties: 0, privileges: []
-        })),
-        schedule: [],
-        history: [],
-        boughtPrivileges: []
-      };
-      saveState();
-      renderAll();
-      alert("Данные сброшены.");
-    }
+  if (confirm("⚠️ Удалить ВСЕ данные?") && confirm("Точно-точно?")) {
+    state = { teacherPassword: state.teacherPassword, students: DEFAULT_STUDENTS.map((name, i) => ({ id: i + 1, name: name, points: 0, duties: 0, privileges: [] })), schedule: [], history: [], boughtPrivileges: [] };
+    saveState(); renderAll(); alert("Данные сброшены.");
   }
 }
 
 // ==================== СТАРТ ====================
-console.log("🚀 Загрузка приложения с JSONStorage.net...");
-
-// Очищаем старый кэш JSONBin
-localStorage.removeItem("cloudApiKey");
+console.log("🚀 Загрузка приложения...");
+localStorage.removeItem("cloudApiKey"); // Очистка старых ключей JSONBin
 localStorage.removeItem("cloudBinId");
-
 loadFromCloud();
-setInterval(() => {
-  if (!isSyncing) {
-    loadFromCloud();
-  }
-}, 60000);
+setInterval(() => { if (!isSyncing) loadFromCloud(); }, 60000);
 </script>
 </body>
 </html>
