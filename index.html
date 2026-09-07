@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Дежурные и рейтинг класса</title>
+<title>Дежурные и рейтинг 6А класса</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -290,7 +290,7 @@
 <body>
 <div class="container">
   <header>
-    <h1>📚 Дежурные и рейтинг класса</h1>
+    <h1>📚 Дежурные и рейтинг 6А класса</h1>
     <p id="todayDate"></p>
     <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
     <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
@@ -302,7 +302,7 @@
     <div class="tab teacher-only" data-screen="students" id="tab-students" style="display:none;">👥 Ученики</div>
     <div class="tab teacher-only" data-screen="rating" id="tab-rating" style="display:none;">🏆 Полный рейтинг</div>
     <div class="tab teacher-only" data-screen="history" id="tab-history" style="display:none;">📜 История</div>
-    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">⚙️ Настройки</div>
+    <div class="tab teacher-only" data-screen="settings" id="tab-settings" style="display:none;">️ Настройки</div>
   </div>
 
   <!-- ЭКРАН: СЕГОДНЯ + РЕЙТИНГ (Для всех) -->
@@ -346,7 +346,7 @@
   <!-- ЭКРАН: ПОЛНЫЙ РЕЙТИНГ (Только учитель) -->
   <div class="screen teacher-only" id="screen-rating" style="display:none;">
     <div class="card">
-      <h2>🏆 Полный рейтинг класса</h2>
+      <h2> Полный рейтинг класса</h2>
       <div id="ratingList"></div>
     </div>
   </div>
@@ -360,7 +360,7 @@
     </div>
 
     <div class="card">
-      <h2>🎫 Купленные привилегии</h2>
+      <h2> Купленные привилегии</h2>
       <div id="boughtPrivileges"></div>
     </div>
 
@@ -428,7 +428,7 @@ const DEFAULT_STUDENTS = [
 
 const PRIVILEGES = [
   { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
-  { id: 2, icon: "", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
+  { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
   { id: 3, icon: "🪑", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
   { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
   { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
@@ -473,14 +473,31 @@ function updateView() {
   loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
 
+  // Показываем/скрываем элементы учителя
   document.querySelectorAll(".teacher-only").forEach(el => {
     el.style.display = isTeacher ? "block" : "none";
   });
 
-  if (!isTeacher) {
-    document.querySelector('.tab[data-screen="today"]').click();
-  } else {
-    renderAll();
+  // Переключаемся на первую вкладку "Дежурство и Рейтинг"
+  switchTab("today");
+  
+  // Перерисовываем данные
+  renderAll();
+}
+
+function switchTab(screenName) {
+  // Убираем активный класс со всех вкладок
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  // Скрываем все экраны
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  
+  // Активируем нужную вкладку
+  const targetTab = document.querySelector(`.tab[data-screen="${screenName}"]`);
+  const targetScreen = document.getElementById(`screen-${screenName}`);
+  
+  if (targetTab && targetScreen) {
+    targetTab.classList.add("active");
+    targetScreen.classList.add("active");
   }
 }
 
@@ -512,13 +529,13 @@ async function loadFromCloud() {
       localStorage.setItem("dutyService", JSON.stringify(state));
       updateSyncStatus("online", "🟢 Подключено");
     } else {
-      updateSyncStatus("syncing", " Инициализация...");
+      updateSyncStatus("syncing", "🔄 Инициализация...");
       await saveToCloud();
     }
     renderAll();
   } catch (err) {
     console.error(err);
-    updateSyncStatus("offline", "🔴 Ошибка сети");
+    updateSyncStatus("offline", " Ошибка сети");
     renderAll();
   } finally {
     isSyncing = false;
@@ -541,7 +558,7 @@ async function saveToCloud() {
       body: JSON.stringify(state)
     });
     if (!response.ok) throw new Error("Ошибка: " + response.status);
-    updateSyncStatus("online", " Сохранено");
+    updateSyncStatus("online", "🟢 Сохранено");
   } catch (err) {
     console.error(err);
     updateSyncStatus("offline", "🔴 Ошибка");
@@ -558,10 +575,7 @@ function saveState() {
 // ==================== ВКЛАДКИ ====================
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-    tab.classList.add("active");
-    document.getElementById("screen-" + tab.dataset.screen).classList.add("active");
+    switchTab(tab.dataset.screen);
     renderAll();
   });
 });
@@ -607,6 +621,7 @@ function weightedRandomPick(pool, count) {
 // ==================== ФУНКЦИИ РЕНДЕРИНГА ====================
 function renderAbsentList() {
   const list = document.getElementById("absentList");
+  if (!list) return;
   list.innerHTML = state.students.map(s => `
     <label class="checkbox-item">
       <input type="checkbox" data-id="${s.id}" class="absent-check">
@@ -678,6 +693,7 @@ function confirmDuty() {
 
 function renderRateSection() {
   const section = document.getElementById("rateSection");
+  if (!section) return;
   const today = document.getElementById("dutyDate").value;
   const record = state.schedule.find(s => s.date === today);
 
@@ -718,6 +734,7 @@ function rateStudent(id, delta) {
 
 function renderStudentList() {
   const list = document.getElementById("studentList");
+  if (!list) return;
   document.getElementById("studentCount").textContent = state.students.length;
   list.innerHTML = state.students.map(s => `
     <div class="student-item">
@@ -782,6 +799,7 @@ function manualRate(id, delta) {
 function renderRating(full = false) {
   const targetId = full ? "ratingList" : "miniRatingList";
   const list = document.getElementById(targetId);
+  if (!list) return;
   const sorted = [...state.students].sort((a, b) => b.points - a.points);
   
   list.innerHTML = sorted.map((s, i) => {
@@ -804,25 +822,8 @@ function renderRating(full = false) {
 function renderShop() {
   // Для всех: показываем список привилегий (без кнопок покупки)
   const list = document.getElementById("privilegesList");
-  list.innerHTML = PRIVILEGES.map(p => `
-    <div class="privilege-card">
-      <div class="privilege-icon">${p.icon}</div>
-      <div class="privilege-info">
-        <div class="privilege-name">${p.name}</div>
-        <div class="privilege-desc">${p.desc}</div>
-        <div class="privilege-price">${p.price} баллов</div>
-      </div>
-    </div>
-  `).join("");
-
-  // Для учителя: показываем админ-панель с выбором ученика и кнопками покупки
-  if (isTeacher) {
-    const select = document.getElementById("shopStudent");
-    select.innerHTML = '<option value="">— Выберите ученика —</option>' +
-      state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
-
-    const adminList = document.getElementById("adminPrivilegesList");
-    adminList.innerHTML = PRIVILEGES.map(p => `
+  if (list) {
+    list.innerHTML = PRIVILEGES.map(p => `
       <div class="privilege-card">
         <div class="privilege-icon">${p.icon}</div>
         <div class="privilege-info">
@@ -830,9 +831,32 @@ function renderShop() {
           <div class="privilege-desc">${p.desc}</div>
           <div class="privilege-price">${p.price} баллов</div>
         </div>
-        <button class="btn small success" onclick="buyPrivilege(${p.id})">Выдать</button>
       </div>
     `).join("");
+  }
+
+  // Для учителя: показываем админ-панель с выбором ученика и кнопками покупки
+  if (isTeacher) {
+    const select = document.getElementById("shopStudent");
+    if (select) {
+      select.innerHTML = '<option value="">— Выберите ученика —</option>' +
+        state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
+    }
+
+    const adminList = document.getElementById("adminPrivilegesList");
+    if (adminList) {
+      adminList.innerHTML = PRIVILEGES.map(p => `
+        <div class="privilege-card">
+          <div class="privilege-icon">${p.icon}</div>
+          <div class="privilege-info">
+            <div class="privilege-name">${p.name}</div>
+            <div class="privilege-desc">${p.desc}</div>
+            <div class="privilege-price">${p.price} баллов</div>
+          </div>
+          <button class="btn small success" onclick="buyPrivilege(${p.id})">Выдать</button>
+        </div>
+      `).join("");
+    }
   }
 
   renderBoughtPrivileges();
@@ -873,6 +897,7 @@ function buyPrivilege(privId) {
 
 function renderBoughtPrivileges() {
   const div = document.getElementById("boughtPrivileges");
+  if (!div) return;
   if (!state.boughtPrivileges.length) {
     div.innerHTML = '<p style="color:#888;">Пока никто ничего не купил.</p>';
     return;
@@ -892,6 +917,7 @@ function renderBoughtPrivileges() {
 
 function renderHistory() {
   const div = document.getElementById("historyList");
+  if (!div) return;
   if (!state.history.length) {
     div.innerHTML = '<p style="color:#888;">Пока нет операций.</p>';
     return;
