@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Дежурные и рейтинг 6А класса</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  /* (Стили остаются без изменений, они компактные и рабочие) */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; padding-bottom: 80px; }
   .container { max-width: 900px; margin: 0 auto; padding: 20px; }
@@ -192,9 +192,11 @@
 </div>
 
 <script>
-// ==================== НАСТРОЙКИ ====================
-const STORAGE_URL = "https://jsonstorage.net/api/items";
-const STORAGE_ID_KEY = "jsonStorageId";
+// ==================== НАСТРОЙКИ SUPABASE ====================
+const SUPABASE_URL = "https://skyvcfohmlrrdbzqmopr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_LJbXjAwV4KMqqdxXP64-aA_TT0qh9bz";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const DEFAULT_STUDENTS = [
   "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
@@ -215,9 +217,8 @@ const PRIVILEGES = [
   { id: 5, icon: "🎫", name: "Право не отвечать", desc: "1 раз не отвечать на уроке", price: 40 }
 ];
 
-// ⚠️ ВАЖНО: teacherPassword установлен в null. Он загрузится ТОЛЬКО из облака!
 let state = {
-  teacherPassword: null, 
+  teacherPassword: "zva",
   students: DEFAULT_STUDENTS.map((name, i) => ({ id: i + 1, name: name, points: 0, duties: 0, privileges: [] })),
   schedule: [],
   history: [],
@@ -227,15 +228,10 @@ let state = {
 let isTeacher = false;
 let isSyncing = false;
 let pendingDuty = [];
-let storageId = localStorage.getItem(STORAGE_ID_KEY);
 
 // ==================== АВТОРИЗАЦИЯ ====================
 async function toggleTeacherMode() {
   if (!isTeacher) {
-    if (state.teacherPassword === null) {
-      alert("⏳ Данные ещё загружаются из облака. Подождите 5 секунд и попробуйте снова.");
-      return;
-    }
     const pass = prompt("Введите пароль учителя:");
     if (pass === null) return;
     if (pass === state.teacherPassword) {
@@ -283,27 +279,22 @@ async function loadFromCloud() {
   updateSyncStatus("syncing", "🔄 Загрузка...");
 
   try {
-    if (!storageId) {
-      // Если это первый запуск, мы НЕ создаем запись с нулевым паролем автоматически,
-      // чтобы не испортить данные. Мы просто ждем, пока учитель выполнит инициализацию.
-      updateSyncStatus("offline", "⚪ Ожидание инициализации учителем");
-      console.log("⚠️ Нет ID хранилища. Учителю нужно выполнить инициализацию через консоль.");
+    const { data, error } = await supabase.from('app_data').select('data').eq('id', 1).single();
+    
+    if (error && error.code === 'PGRST116') {
+      console.log("Создание новой записи в базе...");
+      const { error: insertError } = await supabase.from('app_data').insert({ id: 1, data: state });
+      if (insertError) throw insertError;
+      updateSyncStatus("online", "🟢 Подключено (новая база)");
+    } else if (error) {
+      throw error;
     } else {
-      const response = await fetch(`${STORAGE_URL}/${storageId}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
-      
-      if (result.data && result.data.students) {
-        state = result.data; // Полностью заменяем state данными из облака (включая пароль!)
-        console.log("✅ Данные и пароль успешно загружены из облака");
-        updateSyncStatus("online", "🟢 Подключено");
-      } else {
-        throw new Error("Некорректная структура данных");
-      }
+      state = { ...state, ...data.data };
+      updateSyncStatus("online", "🟢 Подключено");
     }
     renderAll();
   } catch (err) {
-    console.error("❌ Ошибка загрузки:", err);
+    console.error("Ошибка загрузки:", err);
     updateSyncStatus("offline", "🔴 Ошибка сети");
     renderAll();
   } finally {
@@ -312,19 +303,15 @@ async function loadFromCloud() {
 }
 
 async function saveToCloud() {
-  if (!storageId || isSyncing) return;
+  if (isSyncing) return;
   isSyncing = true;
   updateSyncStatus("syncing", "🔄 Сохранение...");
   try {
-    const response = await fetch(`${STORAGE_URL}/${storageId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: state })
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { error } = await supabase.from('app_data').upsert({ id: 1, data: state });
+    if (error) throw error;
     updateSyncStatus("online", "🟢 Сохранено");
   } catch (err) {
-    console.error("❌ Ошибка сохранения:", err);
+    console.error("Ошибка сохранения:", err);
     updateSyncStatus("offline", "🔴 Ошибка");
   } finally {
     isSyncing = false;
@@ -519,15 +506,13 @@ function importData(event) {
 
 function resetData() {
   if (confirm("⚠️ Удалить ВСЕ данные?") && confirm("Точно-точно?")) {
-    state = { teacherPassword: state.teacherPassword, students: DEFAULT_STUDENTS.map((name, i) => ({ id: i + 1, name: name, points: 0, duties: 0, privileges: [] })), schedule: [], history: [], boughtPrivileges: [] };
+    state = { teacherPassword: "zva", students: DEFAULT_STUDENTS.map((name, i) => ({ id: i + 1, name: name, points: 0, duties: 0, privileges: [] })), schedule: [], history: [], boughtPrivileges: [] };
     saveState(); renderAll(); alert("Данные сброшены.");
   }
 }
 
 // ==================== СТАРТ ====================
-console.log("🚀 Загрузка приложения...");
-localStorage.removeItem("cloudApiKey"); // Очистка старых ключей JSONBin
-localStorage.removeItem("cloudBinId");
+console.log("🚀 Загрузка приложения через Supabase...");
 loadFromCloud();
 setInterval(() => { if (!isSyncing) loadFromCloud(); }, 60000);
 </script>
