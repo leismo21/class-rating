@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дежурные и рейтинг класса</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    padding-bottom: 80px;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+  header {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  header h1 { color: #667eea; font-size: 24px; }
+  header p { color: #888; font-size: 14px; margin-top: 5px; }
+
+  .sync-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .sync-status.online { background: #e8f5e9; color: #2e7d32; }
+  .sync-status.offline { background: #ffebee; color: #c62828; }
+  .sync-status.syncing { background: #fff3e0; color: #ef6c00; }
+
+  .tabs {
+    display: flex;
+    background: white;
+    border-radius: 16px;
+    padding: 6px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow-x: auto;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s;
+    white-space: nowrap;
+    min-width: 80px;
+  }
+  .tab.active { background: #667eea; color: white; }
+  .tab:not(.active):hover { background: #f0f0f0; }
+
+  .screen { display: none; animation: fadeIn 0.3s; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  .card h2 { color: #667eea; margin-bottom: 15px; font-size: 18px; }
+
+  .btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin: 4px;
+  }
+  .btn:hover { background: #5568d3; transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary { background: #e0e0e0; color: #333; }
+  .btn.secondary:hover { background: #d0d0d0; }
+  .btn.success { background: #4caf50; }
+  .btn.success:hover { background: #43a047; }
+  .btn.danger { background: #f44336; }
+  .btn.danger:hover { background: #e53935; }
+  .btn.small { padding: 8px 14px; font-size: 13px; }
+
+  .duty-display {
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+  .duty-display h3 { font-size: 16px; opacity: 0.9; margin-bottom: 10px; }
+  .duty-names { font-size: 24px; font-weight: 600; min-height: 70px; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .duty-names.rolling { font-size: 20px; opacity: 0.8; }
+
+  .student-list { display: flex; flex-direction: column; gap: 8px; }
+  .student-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    gap: 12px;
+    transition: all 0.2s;
+  }
+  .student-item:hover { background: #eef0f5; }
+  .student-name { flex: 1; font-weight: 500; }
+  .student-points {
+    background: #667eea;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 50px;
+    text-align: center;
+  }
+  .student-points.negative { background: #f44336; }
+
+  .rating-item {
+    display: flex;
+    align-items: center;
+    padding: 14px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    gap: 12px;
+  }
+  .rating-item.top1 { background: linear-gradient(90deg, #fff9e6, #f8f9fa); border-left: 4px solid #ffd700; }
+  .rating-item.top2 { background: linear-gradient(90deg, #f5f5f5, #f8f9fa); border-left: 4px solid #c0c0c0; }
+  .rating-item.top3 { background: linear-gradient(90deg, #fdf0e6, #f8f9fa); border-left: 4px solid #cd7f32; }
+
+  .student-rank {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .student-rank.gold { background: #ffd700; color: white; }
+  .student-rank.silver { background: #c0c0c0; color: white; }
+  .student-rank.bronze { background: #cd7f32; color: white; }
+
+  .rate-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .rate-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .rate-btn:hover { transform: translateY(-2px); }
+  .rate-btn.plus2 { border-color: #4caf50; color: #4caf50; }
+  .rate-btn.plus2:hover { background: #4caf50; color: white; }
+  .rate-btn.plus1 { border-color: #8bc34a; color: #8bc34a; }
+  .rate-btn.plus1:hover { background: #8bc34a; color: white; }
+  .rate-btn.minus1 { border-color: #ff9800; color: #ff9800; }
+  .rate-btn.minus1:hover { background: #ff9800; color: white; }
+  .rate-btn.minus2 { border-color: #f44336; color: #f44336; }
+  .rate-btn.minus2:hover { background: #f44336; color: white; }
+
+  .privilege-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .privilege-card:hover { border-color: #667eea; }
+  .privilege-icon { font-size: 36px; }
+  .privilege-info { flex: 1; }
+  .privilege-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+  .privilege-desc { color: #666; font-size: 13px; margin-bottom: 6px; }
+  .privilege-price { color: #667eea; font-weight: 700; font-size: 15px; }
+
+  .history-item {
+    padding: 10px;
+    border-left: 3px solid #667eea;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .history-item.plus { border-left-color: #4caf50; }
+  .history-item.minus { border-left-color: #f44336; }
+  .history-date { color: #888; font-size: 12px; }
+
+  input[type="text"], input[type="password"], input[type="date"], select, textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; }
+
+  .checkbox-list { max-height: 300px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 12px; }
+  .checkbox-item { display: flex; align-items: center; padding: 8px; gap: 10px; border-radius: 8px; }
+  .checkbox-item:hover { background: white; }
+  .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal.active { display: flex; }
+  .modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-content h3 { margin-bottom: 15px; color: #667eea; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: #667eea;
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    margin: 2px;
+  }
+
+  .setup-box {
+    background: #fff3e0;
+    border: 2px solid #ff9800;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .setup-box h3 { color: #ef6c00; margin-bottom: 10px; }
+  .setup-box p { font-size: 14px; color: #555; margin-bottom: 10px; }
+
+  @media (max-width: 600px) {
+    .tab { font-size: 12px; padding: 10px 6px; }
+    .duty-names { font-size: 20px; }
+    header h1 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📚 Дежурные и рейтинг класса</h1>
+    <p id="todayDate"></p>
+    <div class="sync-status offline" id="syncStatus">⚪ Не подключено</div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-screen="today">🏠 Сегодня</div>
+    <div class="tab" data-screen="students">👥 Ученики</div>
+    <div class="tab" data-screen="rating">🏆 Рейтинг</div>
+    <div class="tab" data-screen="shop">🎁 Магазин</div>
+    <div class="tab" data-screen="history">📜 История</div>
+    <div class="tab" data-screen="settings">⚙️</div>
+  </div>
+
+  <!-- ЭКРАН: СЕГОДНЯ -->
+  <div class="screen active" id="screen-today">
+    <div class="duty-display">
+      <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
+      <div class="duty-names" id="dutyNames">Нажмите кнопку ниже, чтобы выбрать дежурных</div>
+    </div>
+
+    <div class="card">
+      <h2>🎲 Назначить дежурных</h2>
+      <p style="color:#666; margin-bottom:10px; font-size:14px;">Отметьте отсутствующих — они не попадут в выбор.</p>
+      <label style="font-size:14px; font-weight:500;">Дата:</label>
+      <input type="date" id="dutyDate">
+      <div class="checkbox-list" id="absentList"></div>
+      <div style="margin-top:15px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn success" onclick="rollDuty()">🎲 Выбрать случайным образом</button>
+        <button class="btn" onclick="confirmDuty()">✓ Подтвердить</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⭐ Оценить дежурных</h2>
+      <div id="rateSection"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН: УЧЕНИКИ -->
+  <div class="screen" id="screen-students">
+    <div class="card">
+      <h2>👥 Список класса (<span id="studentCount">0</span> чел.)</h2>
+      <div class="student-list" id="studentList"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН: РЕЙТИНГ -->
+  <div class="screen" id="screen-rating">
+    <div class="card">
+      <h2>🏆 Рейтинг класса</h2>
+      <div id="ratingList"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН: МАГАЗИН -->
+  <div class="screen" id="screen-shop">
+    <div class="card">
+      <h2>🎁 Магазин привилегий</h2>
+      <p style="color:#666; font-size:14px; margin-bottom:15px;">Ученики могут обменять баллы на привилегии.</p>
+      <select id="shopStudent"></select>
+      <div id="privilegesList"></div>
+    </div>
+
+    <div class="card">
+      <h2>🎫 Купленные привилегии</h2>
+      <div id="boughtPrivileges"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН: ИСТОРИЯ -->
+  <div class="screen" id="screen-history">
+    <div class="card">
+      <h2>📜 История операций</h2>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН: НАСТРОЙКИ -->
+  <div class="screen" id="screen-settings">
+    <div class="card">
+      <h2>☁️ Облачное хранилище</h2>
+      <div id="setupBox" class="setup-box">
+        <h3>🔧 Первоначальная настройка</h3>
+        <p>Чтобы данные хранились в облаке и были доступны с любого устройства:</p>
+        <ol style="font-size:14px; color:#555; margin-left:20px; margin-bottom:10px;">
+          <li>Зарегистрируйтесь на <a href="https://jsonbin.io" target="_blank">jsonbin.io</a></li>
+          <li>Скопируйте <strong>X-Master-Key</strong> из личного кабинета</li>
+          <li>Создайте новый Bin (кнопка «Create Bin»)</li>
+          <li>Скопируйте ID Bin из адресной строки (часть после <code>/b/</code>)</li>
+          <li>Вставьте оба значения ниже</li>
+        </ol>
+      </div>
+      <label style="font-size:14px; font-weight:500;">X-Master-Key (секретный ключ):</label>
+      <input type="password" id="apiKey" placeholder="$2a$10$xxxxxxxxx...">
+      <label style="font-size:14px; font-weight:500;">Bin ID:</label>
+      <input type="text" id="binId" placeholder="65abc123def456">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <button class="btn success" onclick="saveCloudSettings()">💾 Сохранить и подключиться</button>
+        <button class="btn" onclick="loadFromCloud()">🔄 Загрузить из облака</button>
+        <button class="btn secondary" onclick="disconnectCloud()">Отключить облако</button>
+      </div>
+      <p style="color:#888; font-size:13px; margin-top:15px;">
+        💡 Ключ хранится только в вашем браузере. После подключения данные автоматически синхронизируются с облаком.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Резервное копирование</h2>
+      <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 Импорт данных</button>
+      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+      <button class="btn danger" onclick="resetData()">🗑️ Сбросить все данные</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: РЕЗУЛЬТАТ ВЫБОРА -->
+<div class="modal" id="resultModal">
+  <div class="modal-content">
+    <h3>🎉 Выбраны дежурные!</h3>
+    <div id="resultNames" style="font-size:20px; font-weight:600; text-align:center; padding:20px; color:#667eea;"></div>
+    <div style="display:flex; gap:8px; justify-content:center;">
+      <button class="btn" onclick="rollDuty()">🔄 Переиграть</button>
+      <button class="btn success" onclick="closeModal(); confirmDuty();">✓ Подтвердить</button>
+      <button class="btn secondary" onclick="closeModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== ДАННЫЕ ====================
+const DEFAULT_STUDENTS = [
+  "Березина Дарья", "Бижко Аделина", "Бордунов Вениамин", "Гафарова Эвелина",
+  "Геллер Ксения", "Гилка Роман", "Джелялов Мурат", "Захарова Ангелина",
+  "Каштенков Александр", "Кисэ Никита", "Копейкин Кирилл", "Кузнецова Дарина",
+  "Матяш Злата", "Мачнев Глеб", "Новик Вадим", "Николаев Артем",
+  "Перов Владимир", "Погосян Арам", "Поповнина Екатерина", "Рябчун Ева",
+  "Сердюк Кира", "Симоненко Денис", "Стрибная Карина", "Ткачук Маргарита",
+  "Токарчук Андрей", "Хайтович Кира", "Хамайко Божена", "Шакирова Шакира",
+  "Шулепа Аполлинария", "Шумаков Ярослав", "Анисимова Дарья"
+];
+
+const PRIVILEGES = [
+  { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе на одну перемену", price: 15 },
+  { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на один день", price: 20 },
+  { id: 3, icon: "🪑", name: "Сиди с другом", desc: "Один день сидеть за одной партой с другом", price: 25 },
+  { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "Одно опоздание прощается", price: 30 },
+  { id: 5, icon: "🎫", name: "Право не отвечать", desc: "Один раз не отвечать на уроке", price: 40 }
+];
+
+// ==================== СОСТОЯНИЕ ====================
+let state = {
+  students: DEFAULT_STUDENTS.map((name, i) => ({
+    id: i + 1, name: name, points: 0, duties: 0, privileges: []
+  })),
+  schedule: [],
+  history: [],
+  boughtPrivileges: []
+};
+
+let cloudConfig = {
+  apiKey: localStorage.getItem("cloudApiKey") || "",
+  binId: localStorage.getItem("cloudBinId") || ""
+};
+
+let isSyncing = false;
+
+// ==================== ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ====================
+function updateSyncStatus(status, text) {
+  const el = document.getElementById("syncStatus");
+  el.className = "sync-status " + status;
+  el.textContent = text;
+}
+
+async function loadFromCloud() {
+  if (!cloudConfig.apiKey || !cloudConfig.binId) {
+    updateSyncStatus("offline", "⚪ Не подключено");
+    return;
+  }
+  if (isSyncing) return;
+  isSyncing = true;
+  updateSyncStatus("syncing", "🔄 Загрузка...");
+
+  try {
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
+      headers: { "X-Master-Key": cloudConfig.apiKey }
+    });
+    if (!response.ok) throw new Error("Ошибка загрузки: " + response.status);
+    const data = await response.json();
+    if (data.record && Object.keys(data.record).length > 0) {
+      state = data.record;
+      localStorage.setItem("dutyService", JSON.stringify(state));
+      updateSyncStatus("online", "🟢 Подключено");
+      renderAll();
+    } else {
+      // Пустое хранилище — загружаем туда текущие данные
+      await saveToCloud();
+    }
+  } catch (err) {
+    console.error(err);
+    updateSyncStatus("offline", "🔴 Ошибка: " + err.message);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+async function saveToCloud() {
+  if (!cloudConfig.apiKey || !cloudConfig.binId) return;
+  if (isSyncing) return;
+  isSyncing = true;
+  updateSyncStatus("syncing", "🔄 Сохранение...");
+
+  try {
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": cloudConfig.apiKey
+      },
+      body: JSON.stringify(state)
+    });
+    if (!response.ok) throw new Error("Ошибка сохранения: " + response.status);
+    updateSyncStatus("online", "🟢 Сохранено в облаке");
+  } catch (err) {
+    console.error(err);
+    updateSyncStatus("offline", "🔴 Ошибка: " + err.message);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+function saveState() {
+  localStorage.setItem("dutyService", JSON.stringify(state));
+  saveToCloud();
+}
+
+function loadLocalState() {
+  const saved = localStorage.getItem("dutyService");
+  if (saved) {
+    try {
+      state = JSON.parse(saved);
+      return;
+    } catch(e) {}
+  }
+  state = {
+    students: DEFAULT_STUDENTS.map((name, i) => ({
+      id: i + 1, name: name, points: 0, duties: 0, privileges: []
+    })),
+    schedule: [],
+    history: [],
+    boughtPrivileges: []
+  };
+}
+
+// ==================== НАСТРОЙКИ ОБЛАКА ====================
+function saveCloudSettings() {
+  const key = document.getElementById("apiKey").value.trim();
+  const bin = document.getElementById("binId").value.trim();
+  if (!key || !bin) {
+    alert("Заполните оба поля!");
+    return;
+  }
+  cloudConfig.apiKey = key;
+  cloudConfig.binId = bin;
+  localStorage.setItem("cloudApiKey", key);
+  localStorage.setItem("cloudBinId", bin);
+  loadFromCloud();
+}
+
+function disconnectCloud() {
+  if (!confirm("Отключить облако? Данные останутся в этом браузере.")) return;
+  cloudConfig.apiKey = "";
+  cloudConfig.binId = "";
+  localStorage.removeItem("cloudApiKey");
+  localStorage.removeItem("cloudBinId");
+  updateSyncStatus("offline", "⚪ Не подключено");
+  document.getElementById("apiKey").value = "";
+  document.getElementById("binId").value = "";
+}
+
+// ==================== ВКЛАДКИ ====================
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("screen-" + tab.dataset.screen).classList.add("active");
+    renderAll();
+  });
+});
+
+// ==================== ДАТА ====================
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+function formatDate(str) {
+  const d = new Date(str);
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+}
+document.getElementById("todayDate").textContent = formatDate(todayStr());
+document.getElementById("dutyDate").value = todayStr();
+
+// ==================== ВЕС ДЛЯ РАНДОМА ====================
+function getWeight(student) {
+  const base = 10;
+  const maxPoints = 50;
+  const bonus = Math.max(0, (maxPoints - student.points) * 0.3);
+  return base + bonus;
+}
+
+function weightedRandomPick(pool, count) {
+  const result = [];
+  const available = [...pool];
+  for (let i = 0; i < count && available.length > 0; i++) {
+    const weights = available.map(s => getWeight(s));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    let pickedIdx = 0;
+    for (let j = 0; j < weights.length; j++) {
+      r -= weights[j];
+      if (r <= 0) { pickedIdx = j; break; }
+    }
+    result.push(available[pickedIdx]);
+    available.splice(pickedIdx, 1);
+  }
+  return result;
+}
+
+// ==================== ОТСУТСТВУЮЩИЕ ====================
+let pendingDuty = [];
+
+function renderAbsentList() {
+  const list = document.getElementById("absentList");
+  list.innerHTML = state.students.map(s => `
+    <label class="checkbox-item">
+      <input type="checkbox" data-id="${s.id}" class="absent-check">
+      <span>${s.name}</span>
+      <span style="color:#888; font-size:12px; margin-left:auto;">${s.points} б.</span>
+    </label>
+  `).join("");
+}
+
+// ==================== РУЛЕТКА ====================
+function rollDuty() {
+  const absentIds = Array.from(document.querySelectorAll(".absent-check:checked"))
+    .map(c => parseInt(c.dataset.id));
+  const pool = state.students.filter(s => !absentIds.includes(s.id));
+
+  if (pool.length < 2) {
+    alert("Недостаточно учеников для выбора (нужно минимум 2).");
+    return;
+  }
+
+  document.getElementById("resultModal").classList.add("active");
+  const resultDiv = document.getElementById("resultNames");
+  resultDiv.classList.add("rolling");
+
+  let iterations = 0;
+  const maxIterations = 20;
+  let delay = 80;
+
+  function spin() {
+    const randoms = weightedRandomPick(pool, 2);
+    resultDiv.innerHTML = randoms.map(s => `<div>${s.name}</div>`).join("");
+    iterations++;
+    if (iterations < maxIterations) {
+      delay += 20;
+      setTimeout(spin, delay);
+    } else {
+      pendingDuty = weightedRandomPick(pool, 2);
+      resultDiv.classList.remove("rolling");
+      resultDiv.innerHTML = pendingDuty.map(s => `<div>✨ ${s.name}</div>`).join("");
+    }
+  }
+  spin();
+}
+
+function closeModal() {
+  document.getElementById("resultModal").classList.remove("active");
+}
+
+function confirmDuty() {
+  if (pendingDuty.length !== 2) {
+    alert("Сначала выберите дежурных кнопкой «Выбрать случайным образом».");
+    return;
+  }
+  const date = document.getElementById("dutyDate").value;
+  state.schedule = state.schedule.filter(s => s.date !== date);
+  state.schedule.push({
+    date: date,
+    studentIds: pendingDuty.map(s => s.id),
+    rating: null,
+    comment: ""
+  });
+  pendingDuty.forEach(s => {
+    const st = state.students.find(x => x.id === s.id);
+    if (st) st.duties++;
+  });
+  saveState();
+  closeModal();
+  renderAll();
+  alert("✅ Дежурные назначены!");
+}
+
+// ==================== ОЦЕНКИ ====================
+function renderRateSection() {
+  const section = document.getElementById("rateSection");
+  const today = document.getElementById("dutyDate").value;
+  const record = state.schedule.find(s => s.date === today);
+
+  if (!record) {
+    section.innerHTML = '<p style="color:#888;">Сначала назначьте дежурных на эту дату.</p>';
+    return;
+  }
+
+  const students = record.studentIds.map(id => state.students.find(s => s.id === id)).filter(Boolean);
+  section.innerHTML = students.map(s => `
+    <div style="background:#f8f9fa; padding:15px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-weight:600; margin-bottom:8px;">${s.name} <span style="color:#888; font-weight:400;">(${s.points} б.)</span></div>
+      <div class="rate-buttons">
+        <button class="rate-btn plus2" onclick="rateStudent(${s.id}, 2)">+2 Отлично</button>
+        <button class="rate-btn plus1" onclick="rateStudent(${s.id}, 1)">+1 Хорошо</button>
+        <button class="rate-btn minus1" onclick="rateStudent(${s.id}, -1)">-1 Замечание</button>
+        <button class="rate-btn minus2" onclick="rateStudent(${s.id}, -2)">-2 Плохо</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function rateStudent(id, delta) {
+  const student = state.students.find(s => s.id === id);
+  if (!student) return;
+  const reason = delta > 0 ? "Оценка за дежурство" : "Замечание за дежурство";
+  student.points += delta;
+  state.history.unshift({
+    date: new Date().toISOString(),
+    studentId: id,
+    studentName: student.name,
+    delta: delta,
+    reason: reason
+  });
+  saveState();
+  renderAll();
+}
+
+// ==================== УЧЕНИКИ ====================
+function renderStudentList() {
+  const list = document.getElementById("studentList");
+  document.getElementById("studentCount").textContent = state.students.length;
+  list.innerHTML = state.students.map(s => `
+    <div class="student-item">
+      <div class="student-name">${s.name}</div>
+      <div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div>
+      <div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div>
+      <button class="btn small secondary" onclick="openStudentModal(${s.id})">⋯</button>
+    </div>
+  `).join("");
+}
+
+function openStudentModal(id) {
+  const s = state.students.find(x => x.id === id);
+  const studentHistory = state.history.filter(h => h.studentId === id).slice(0, 10);
+  const studentPrivs = state.boughtPrivileges.filter(p => p.studentId === id);
+
+  const modal = document.createElement("div");
+  modal.className = "modal active";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h3>${s.name}</h3>
+      <p><strong>Баллы:</strong> ${s.points}</p>
+      <p><strong>Дежурств:</strong> ${s.duties}</p>
+      <p style="margin-top:10px;"><strong>Привилегии:</strong></p>
+      <div>${studentPrivs.length ? studentPrivs.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("") : '<span style="color:#888;">Пока нет</span>'}</div>
+      <p style="margin-top:15px;"><strong>Последние операции:</strong></p>
+      <div style="max-height:200px; overflow-y:auto;">
+        ${studentHistory.length ? studentHistory.map(h => `
+          <div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}">
+            <div>${h.delta > 0 ? '+' : ''}${h.delta} — ${h.reason}</div>
+            <div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div>
+          </div>
+        `).join("") : '<p style="color:#888;">Пока нет операций</p>'}
+      </div>
+      <div style="margin-top:15px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn small" onclick="manualRate(${id}, 1); this.closest('.modal').remove();">+1</button>
+        <button class="btn small" onclick="manualRate(${id}, 2); this.closest('.modal').remove();">+2</button>
+        <button class="btn small" onclick="manualRate(${id}, -1); this.closest('.modal').remove();">-1</button>
+        <button class="btn small" onclick="manualRate(${id}, -2); this.closest('.modal').remove();">-2</button>
+        <button class="btn small secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
+}
+
+function manualRate(id, delta) {
+  const student = state.students.find(s => s.id === id);
+  student.points += delta;
+  state.history.unshift({
+    date: new Date().toISOString(),
+    studentId: id,
+    studentName: student.name,
+    delta: delta,
+    reason: "Ручная корректировка"
+  });
+  saveState();
+  renderAll();
+}
+
+// ==================== РЕЙТИНГ ====================
+function renderRating() {
+  const list = document.getElementById("ratingList");
+  const sorted = [...state.students].sort((a, b) => b.points - a.points);
+  list.innerHTML = sorted.map((s, i) => {
+    const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+    const itemClass = i === 0 ? "top1" : i === 1 ? "top2" : i === 2 ? "top3" : "";
+    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+    return `
+      <div class="rating-item ${itemClass}">
+        <div class="student-rank ${rankClass}">${medal}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;">${s.name}</div>
+          <div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div>
+        </div>
+        <div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ==================== МАГАЗИН ====================
+function renderShop() {
+  const select = document.getElementById("shopStudent");
+  select.innerHTML = '<option value="">— Выберите ученика —</option>' +
+    state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
+
+  const list = document.getElementById("privilegesList");
+  list.innerHTML = PRIVILEGES.map(p => `
+    <div class="privilege-card">
+      <div class="privilege-icon">${p.icon}</div>
+      <div class="privilege-info">
+        <div class="privilege-name">${p.name}</div>
+        <div class="privilege-desc">${p.desc}</div>
+        <div class="privilege-price">${p.price} баллов</div>
+      </div>
+      <button class="btn small success" onclick="buyPrivilege(${p.id})">Купить</button>
+    </div>
+  `).join("");
+
+  renderBoughtPrivileges();
+}
+
+function buyPrivilege(privId) {
+  const studentId = parseInt(document.getElementById("shopStudent").value);
+  if (!studentId) { alert("Сначала выберите ученика!"); return; }
+  const student = state.students.find(s => s.id === studentId);
+  const priv = PRIVILEGES.find(p => p.id === privId);
+  if (student.points < priv.price) {
+    alert(`Недостаточно баллов! У ${student.name} ${student.points} б., нужно ${priv.price} б.`);
+    return;
+  }
+  if (!confirm(`Купить «${priv.name}» для ${student.name} за ${priv.price} б.?`)) return;
+
+  student.points -= priv.price;
+  state.boughtPrivileges.push({
+    id: Date.now(),
+    studentId: studentId,
+    studentName: student.name,
+    privId: priv.id,
+    icon: priv.icon,
+    name: priv.name,
+    date: new Date().toISOString()
+  });
+  state.history.unshift({
+    date: new Date().toISOString(),
+    studentId: studentId,
+    studentName: student.name,
+    delta: -priv.price,
+    reason: `Покупка: ${priv.name}`
+  });
+  saveState();
+  renderAll();
+  alert(`✅ ${student.name} получил(а) привилегию «${priv.name}»!`);
+}
+
+function renderBoughtPrivileges() {
+  const div = document.getElementById("boughtPrivileges");
+  if (!state.boughtPrivileges.length) {
+    div.innerHTML = '<p style="color:#888;">Пока никто ничего не купил.</p>';
+    return;
+  }
+  const grouped = {};
+  state.boughtPrivileges.forEach(p => {
+    if (!grouped[p.studentId]) grouped[p.studentId] = { name: p.studentName, items: [] };
+    grouped[p.studentId].items.push(p);
+  });
+  div.innerHTML = Object.entries(grouped).map(([id, data]) => `
+    <div style="background:#f8f9fa; padding:12px; border-radius:12px; margin-bottom:10px;">
+      <div style="font-weight:600; margin-bottom:8px;">${data.name}</div>
+      <div>${data.items.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("")}</div>
+    </div>
+  `).join("");
+}
+
+// ==================== ИСТОРИЯ ====================
+function renderHistory() {
+  const div = document.getElementById("historyList");
+  if (!state.history.length) {
+    div.innerHTML = '<p style="color:#888;">Пока нет операций.</p>';
+    return;
+  }
+  div.innerHTML = state.history.slice(0, 100).map(h => `
+    <div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}">
+      <div><strong>${h.studentName}</strong> — ${h.delta > 0 ? '+' : ''}${h.delta} б. — ${h.reason}</div>
+      <div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div>
+    </div>
+  `).join("");
+}
+
+// ==================== НАСТРОЙКИ ====================
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `duty-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.students) throw new Error("Неверный формат");
+      if (confirm("Заменить текущие данные импортированными?")) {
+        state = data;
+        saveState();
+        renderAll();
+        alert("✅ Данные импортированы!");
+      }
+    } catch (err) {
+      alert("Ошибка импорта: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetData() {
+  if (confirm("⚠️ Удалить ВСЕ данные? Это действие нельзя отменить!")) {
+    if (confirm("Точно-точно? Все баллы, история, привилегии будут удалены.")) {
+      state = {
+        students: DEFAULT_STUDENTS.map((name, i) => ({
+          id: i + 1, name: name, points: 0, duties: 0, privileges: []
+        })),
+        schedule: [],
+        history: [],
+        boughtPrivileges: []
+      };
+      saveState();
+      renderAll();
+      alert("Данные сброшены.");
+    }
+  }
+}
+
+// ==================== ОБНОВЛЕНИЕ ====================
+function renderAll() {
+  renderAbsentList();
+  renderRateSection();
+  renderStudentList();
+  renderRating();
+  renderShop();
+  renderHistory();
+
+  const date = document.getElementById("dutyDate").value;
+  const record = state.schedule.find(s => s.date === date);
+  const dutyNames = document.getElementById("dutyNames");
+  const dutyLabel = document.getElementById("dutyDateLabel");
+  dutyLabel.textContent = `Дежурные на ${formatDate(date)}`;
+  if (record) {
+    const names = record.studentIds.map(id => state.students.find(s => s.id === id)?.name).filter(Boolean);
+    dutyNames.innerHTML = names.map(n => `<div>✨ ${n}</div>`).join("");
+  } else {
+    dutyNames.textContent = "Дежурные ещё не назначены";
+  }
+}
+
+document.getElementById("dutyDate").addEventListener("change", renderAll);
+
+// ==================== СТАРТ ====================
+document.getElementById("apiKey").value = cloudConfig.apiKey;
+document.getElementById("binId").value = cloudConfig.binId;
+loadLocalState();
+renderAll();
+
+// Если облако настроено — загружаем данные
+if (cloudConfig.apiKey && cloudConfig.binId) {
+  loadFromCloud();
+} else {
+  updateSyncStatus("offline", "⚪ Облако не подключено");
+}
+
+// Автообновление каждые 60 секунд (чтобы видеть изменения от других устройств)
+setInterval(() => {
+  if (cloudConfig.apiKey && cloudConfig.binId && !isSyncing) {
+    loadFromCloud();
+  }
+}, 60000);
+</script>
+</body>
+</html>
