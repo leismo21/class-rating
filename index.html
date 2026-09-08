@@ -23,14 +23,9 @@
   .tab { flex: 1 1 auto; padding: 10px 12px; text-align: center; cursor: pointer; border-radius: 12px; font-weight: 500; font-size: 13px; transition: all 0.3s; white-space: nowrap; min-width: 100px; }
   .tab.active { background: #667eea; color: white; }
   .tab:not(.active):hover { background: #f0f0f0; }
-  
-  /* КРИТИЧЕСКИ ВАЖНО: скрываем teacher-only по умолчанию */
   .teacher-only { display: none !important; }
-  /* Показываем teacher-only только когда body имеет класс teacher-mode */
   body.teacher-mode .teacher-only { display: block !important; }
-  /* Для вкладок и экранов используем flex/block соответственно */
   body.teacher-mode .tab.teacher-only { display: flex !important; }
-  
   .screen { display: none; animation: fadeIn 0.3s; }
   .screen.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -41,6 +36,9 @@
   .btn.secondary { background: #e0e0e0; color: #333; }
   .btn.success { background: #4caf50; }
   .btn.danger { background: #f44336; }
+  .btn.birthday { background: linear-gradient(135deg, #ff6b9d, #c44569); }
+  .btn.birthday:hover { background: linear-gradient(135deg, #ff5a8d, #b43559); }
+  .btn.welcome { background: linear-gradient(135deg, #f093fb, #f5576c); }
   .btn.small { padding: 8px 14px; font-size: 13px; }
   .duty-display { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px; margin-bottom: 20px; }
   .duty-display h3 { font-size: 16px; opacity: 0.9; margin-bottom: 10px; }
@@ -69,7 +67,9 @@
   .rate-btn.minus1:hover { background: #ff9800; color: white; }
   .rate-btn.minus2 { border-color: #f44336; color: #f44336; }
   .rate-btn.minus2:hover { background: #f44336; color: white; }
-  .privilege-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 14px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; border: 2px solid transparent; }
+  .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .quick-actions select { flex: 1; min-width: 200px; }
+  .privilege-card { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 14px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; border: 2px solid transparent; transition: all 0.2s; }
   .privilege-card:hover { border-color: #667eea; }
   .privilege-icon { font-size: 36px; }
   .privilege-info { flex: 1; }
@@ -79,6 +79,8 @@
   .history-item { padding: 10px; border-left: 3px solid #667eea; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
   .history-item.plus { border-left-color: #4caf50; }
   .history-item.minus { border-left-color: #f44336; }
+  .history-item.birthday { border-left-color: #ff6b9d; background: #fff0f5; }
+  .history-item.welcome { border-left-color: #f093fb; background: #fdf0ff; }
   .history-date { color: #888; font-size: 12px; }
   input[type="text"], input[type="password"], input[type="date"], select { width: 100%; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; margin-bottom: 10px; font-family: inherit; }
   input:focus, select:focus { outline: none; border-color: #667eea; }
@@ -90,15 +92,16 @@
   .modal-content { background: white; border-radius: 16px; padding: 24px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-content h3 { margin-bottom: 15px; color: #667eea; }
   .badge { display: inline-block; padding: 3px 10px; background: #667eea; color: white; border-radius: 20px; font-size: 12px; margin: 2px; }
+  .info-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #1565c0; }
   @media (max-width: 600px) { .tab { font-size: 11px; padding: 8px 6px; min-width: 80px; } .duty-names { font-size: 20px; } header h1 { font-size: 20px; } .login-btn { position: static; margin-top: 10px; width: 100%; } }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>📚 Дежурные и рейтинг 6А класса</h1>
+    <h1> Дежурные и рейтинг 6А класса</h1>
     <p id="todayDate"></p>
-    <div class="sync-status syncing" id="syncStatus"> Подключение...</div>
+    <div class="sync-status syncing" id="syncStatus">🔄 Подключение...</div>
     <button class="login-btn" id="loginBtn" onclick="toggleTeacherMode()">🔑 Войти как учитель</button>
   </header>
 
@@ -116,6 +119,20 @@
       <h3 id="dutyDateLabel">Дежурные на сегодня</h3>
       <div class="duty-names" id="dutyNames">Загрузка данных...</div>
     </div>
+    
+    <!-- Быстрые действия учителя (только для учителя) -->
+    <div class="card teacher-only" id="quickActionsCard">
+      <h2>⚡ Быстрые действия</h2>
+      <p style="color:#666; font-size:14px; margin-bottom:10px;">Выберите ученика и начислите баллы за день рождения или другие события.</p>
+      <select id="quickStudent">
+        <option value="">— Выберите ученика —</option>
+      </select>
+      <div class="quick-actions">
+        <button class="btn birthday" onclick="giveBirthdayPoints()">🎂 День рождения (+20)</button>
+        <button class="btn welcome" onclick="giveWelcomePoints()"> Приветственные баллы (+20)</button>
+      </div>
+    </div>
+
     <div class="card teacher-only" id="rateSectionCard">
       <h2>⭐ Оценить дежурных</h2>
       <div id="rateSection"></div>
@@ -132,21 +149,21 @@
       </div>
     </div>
     <div class="card">
-      <h2> Рейтинг класса</h2>
+      <h2>🏆 Рейтинг класса</h2>
       <div id="miniRatingList"></div>
     </div>
   </div>
 
   <div class="screen teacher-only" id="screen-students">
     <div class="card">
-      <h2> Список класса (<span id="studentCount">0</span> чел.)</h2>
+      <h2>👥 Список класса (<span id="studentCount">0</span> чел.)</h2>
       <div class="student-list" id="studentList"></div>
     </div>
   </div>
 
   <div class="screen teacher-only" id="screen-rating">
     <div class="card">
-      <h2>🏆 Полный рейтинг класса</h2>
+      <h2> Полный рейтинг класса</h2>
       <div id="ratingList"></div>
     </div>
   </div>
@@ -171,12 +188,19 @@
 
   <div class="screen teacher-only" id="screen-history">
     <div class="card">
-      <h2> История операций</h2>
+      <h2>📜 История операций</h2>
       <div id="historyList"></div>
     </div>
   </div>
 
   <div class="screen teacher-only" id="screen-settings">
+    <div class="card">
+      <h2>🎉 Массовые операции</h2>
+      <div class="info-box">
+        💡 Кнопка ниже начислит <strong>20 приветственных баллов</strong> всем ученикам, у которых их ещё нет. Повторное нажатие не начислит баллы дважды.
+      </div>
+      <button class="btn welcome" onclick="giveWelcomeToAll()">🎁 Начислить всем приветственные баллы (+20)</button>
+    </div>
     <div class="card">
       <h2>⚙️ Резервное копирование</h2>
       <button class="btn" onclick="exportData()">💾 Экспорт данных (JSON)</button>
@@ -215,12 +239,14 @@ const DEFAULT_STUDENTS = [
   "Шулепа Аполлинария", "Шумаков Ярослав", "Анисимова Дарья"
 ];
 
+// НОВЫЙ СПИСОК ПРИВИЛЕГИЙ
 const PRIVILEGES = [
-  { id: 1, icon: "🎵", name: "DJ на перемене", desc: "Выбор музыки в классе", price: 15 },
-  { id: 2, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на 1 день", price: 20 },
-  { id: 3, icon: "", name: "Сиди с другом", desc: "1 день сидеть с другом", price: 25 },
-  { id: 4, icon: "⏰", name: "Опоздание без последствий", desc: "1 опоздание прощается", price: 30 },
-  { id: 5, icon: "🎫", name: "Право не отвечать", desc: "1 раз не отвечать на уроке", price: 40 }
+  { id: 1, icon: "📍", name: "Выбор места", desc: "Сесть за любую парту на 1 день", price: 20 },
+  { id: 2, icon: "📈", name: "+1 балл к оценке по математике", desc: "Дополнительный балл к одной оценке", price: 30 },
+  { id: 3, icon: "", name: "Без домашнего задания по математике", desc: "Пропуск одного домашнего задания", price: 20 },
+  { id: 4, icon: "", name: "Стать дежурным на 1 день", desc: "Почётная обязанность дежурного", price: 5 },
+  { id: 5, icon: "🤐", name: "Право не отвечать на уроке математики", desc: "Один раз не отвечать на уроке", price: 20 },
+  { id: 6, icon: "🍫", name: "Шоколадка", desc: "Настоящая шоколадка от учителя", price: 50 }
 ];
 
 let state = {
@@ -256,34 +282,22 @@ function updateView() {
   const loginBtn = document.getElementById("loginBtn");
   loginBtn.textContent = isTeacher ? "🚪 Выйти из режима учителя" : "🔑 Войти как учитель";
   loginBtn.classList.toggle("active", isTeacher);
-
-  // Добавляем/убираем класс teacher-mode на body
   if (isTeacher) {
     document.body.classList.add("teacher-mode");
   } else {
     document.body.classList.remove("teacher-mode");
   }
-
-  // Переключаемся на первую вкладку
   switchTab("today");
   renderAll();
 }
 
 function switchTab(screenName) {
-  // Скрываем ВСЕ экраны и убираем активность со всех вкладок
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  
-  // Показываем только нужный экран и активируем вкладку
   const targetScreen = document.getElementById(`screen-${screenName}`);
   const targetTab = document.querySelector(`.tab[data-screen="${screenName}"]`);
-  
-  if (targetScreen) {
-    targetScreen.classList.add("active");
-  }
-  if (targetTab) {
-    targetTab.classList.add("active");
-  }
+  if (targetScreen) targetScreen.classList.add("active");
+  if (targetTab) targetTab.classList.add("active");
 }
 
 // ==================== ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ====================
@@ -297,10 +311,8 @@ async function loadFromCloud() {
   if (isSyncing) return;
   isSyncing = true;
   updateSyncStatus("syncing", "🔄 Загрузка...");
-
   try {
     const { data, error } = await supabaseClient.from('app_data').select('data').eq('id', 1).single();
-    
     if (error && error.code === 'PGRST116') {
       console.log("Создание новой записи в базе...");
       const { error: insertError } = await supabaseClient.from('app_data').insert({ id: 1, data: state });
@@ -339,6 +351,82 @@ async function saveToCloud() {
 }
 
 function saveState() { saveToCloud(); }
+
+// ==================== НОВЫЕ ФУНКЦИИ: ДЕНЬ РОЖДЕНИЯ И ПРИВЕТСТВЕННЫЕ БАЛЛЫ ====================
+
+// Проверка: были ли уже начислены приветственные баллы ученику
+function hasWelcomePoints(studentId) {
+  return state.history.some(h => h.studentId === studentId && h.reason === "Приветственные баллы");
+}
+
+// Начислить баллы одному ученику (универсальная функция)
+function addPointsToStudent(studentId, points, reason, historyClass = "plus") {
+  const student = state.students.find(s => s.id === studentId);
+  if (!student) return false;
+  student.points += points;
+  state.history.unshift({
+    date: new Date().toISOString(),
+    studentId: studentId,
+    studentName: student.name,
+    delta: points,
+    reason: reason,
+    historyClass: historyClass
+  });
+  return true;
+}
+
+// Кнопка "День рождения" для одного ученика
+function giveBirthdayPoints() {
+  const studentId = parseInt(document.getElementById("quickStudent").value);
+  if (!studentId) { alert("Сначала выберите ученика!"); return; }
+  const student = state.students.find(s => s.id === studentId);
+  if (!confirm(` Начислить 20 баллов за день рождения ученику ${student.name}?`)) return;
+  addPointsToStudent(studentId, 20, "День рождения 🎂", "birthday");
+  saveState();
+  renderAll();
+  alert(`✅ ${student.name} получил(а) +20 баллов за день рождения! `);
+}
+
+// Кнопка "Приветственные баллы" для одного ученика
+function giveWelcomePoints() {
+  const studentId = parseInt(document.getElementById("quickStudent").value);
+  if (!studentId) { alert("Сначала выберите ученика!"); return; }
+  const student = state.students.find(s => s.id === studentId);
+  if (hasWelcomePoints(studentId)) {
+    if (!confirm(`⚠️ ${student.name} уже получал(а) приветственные баллы. Начислить ещё раз?`)) return;
+  }
+  addPointsToStudent(studentId, 20, "Приветственные баллы", "welcome");
+  saveState();
+  renderAll();
+  alert(`✅ ${student.name} получил(а) +20 приветственных баллов! 🎉`);
+}
+
+// Кнопка "Начислить всем приветственные баллы"
+function giveWelcomeToAll() {
+  let count = 0;
+  let alreadyHas = 0;
+  
+  state.students.forEach(student => {
+    if (hasWelcomePoints(student.id)) {
+      alreadyHas++;
+    } else {
+      addPointsToStudent(student.id, 20, "Приветственные баллы", "welcome");
+      count++;
+    }
+  });
+  
+  if (count > 0) {
+    saveState();
+    renderAll();
+    let msg = `✅ Начислено 20 приветственных баллов ${count} ученикам!`;
+    if (alreadyHas > 0) {
+      msg += `\n\n⚠️ ${alreadyHas} ученикам баллы не начислены (уже были получены ранее).`;
+    }
+    alert(msg);
+  } else {
+    alert(`ℹ️ Все ученики уже получили приветственные баллы. Никто не был пропущен.`);
+  }
+}
 
 // ==================== ВКЛАДКИ И ДАТА ====================
 document.querySelectorAll(".tab").forEach(tab => {
@@ -421,14 +509,14 @@ function renderRateSection() {
 function rateStudent(id, delta) {
   const student = state.students.find(s => s.id === id); if (!student) return;
   student.points += delta;
-  state.history.unshift({ date: new Date().toISOString(), studentId: id, studentName: student.name, delta: delta, reason: delta > 0 ? "Оценка за дежурство" : "Замечание" });
+  state.history.unshift({ date: new Date().toISOString(), studentId: id, studentName: student.name, delta: delta, reason: delta > 0 ? "Оценка за дежурство" : "Замечание", historyClass: delta > 0 ? "plus" : "minus" });
   saveState(); renderAll();
 }
 
 function renderStudentList() {
   const list = document.getElementById("studentList"); if (!list) return;
   document.getElementById("studentCount").textContent = state.students.length;
-  list.innerHTML = state.students.map(s => `<div class="student-item"><div class="student-name">${s.name}</div><div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div><div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div><button class="btn small secondary" onclick="openStudentModal(${s.id})"></button></div>`).join("");
+  list.innerHTML = state.students.map(s => `<div class="student-item"><div class="student-name">${s.name}</div><div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div><div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div><button class="btn small secondary" onclick="openStudentModal(${s.id})">⋯</button></div>`).join("");
 }
 
 function openStudentModal(id) {
@@ -436,14 +524,14 @@ function openStudentModal(id) {
   const studentHistory = state.history.filter(h => h.studentId === id).slice(0, 10);
   const studentPrivs = state.boughtPrivileges.filter(p => p.studentId === id);
   const modal = document.createElement("div"); modal.className = "modal active";
-  modal.innerHTML = `<div class="modal-content"><h3>${s.name}</h3><p><strong>Баллы:</strong> ${s.points}</p><p><strong>Дежурств:</strong> ${s.duties}</p><p style="margin-top:10px;"><strong>Привилегии:</strong></p><div>${studentPrivs.length ? studentPrivs.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("") : '<span style="color:#888;">Пока нет</span>'}</div><p style="margin-top:15px;"><strong>Последние операции:</strong></p><div style="max-height:200px; overflow-y:auto;">${studentHistory.length ? studentHistory.map(h => `<div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}"><div>${h.delta > 0 ? '+' : ''}${h.delta} — ${h.reason}</div><div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div></div>`).join("") : '<p style="color:#888;">Пока нет операций</p>'}</div><div style="margin-top:15px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn small" onclick="manualRate(${id}, 1); this.closest('.modal').remove();">+1</button><button class="btn small" onclick="manualRate(${id}, 2); this.closest('.modal').remove();">+2</button><button class="btn small" onclick="manualRate(${id}, -1); this.closest('.modal').remove();">-1</button><button class="btn small" onclick="manualRate(${id}, -2); this.closest('.modal').remove();">-2</button><button class="btn small secondary" onclick="this.closest('.modal').remove()">Закрыть</button></div></div>`;
+  modal.innerHTML = `<div class="modal-content"><h3>${s.name}</h3><p><strong>Баллы:</strong> ${s.points}</p><p><strong>Дежурств:</strong> ${s.duties}</p><p style="margin-top:10px;"><strong>Привилегии:</strong></p><div>${studentPrivs.length ? studentPrivs.map(p => `<span class="badge">${p.icon} ${p.name}</span>`).join("") : '<span style="color:#888;">Пока нет</span>'}</div><p style="margin-top:15px;"><strong>Последние операции:</strong></p><div style="max-height:200px; overflow-y:auto;">${studentHistory.length ? studentHistory.map(h => `<div class="history-item ${h.historyClass || (h.delta > 0 ? 'plus' : 'minus')}"><div>${h.delta > 0 ? '+' : ''}${h.delta} — ${h.reason}</div><div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div></div>`).join("") : '<p style="color:#888;">Пока нет операций</p>'}</div><div style="margin-top:15px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn small birthday" onclick="addPointsToStudent(${id}, 20, 'День рождения 🎂', 'birthday'); saveState(); renderAll(); this.closest('.modal').remove();"> +20 ДР</button><button class="btn small" onclick="manualRate(${id}, 1); this.closest('.modal').remove();">+1</button><button class="btn small" onclick="manualRate(${id}, 2); this.closest('.modal').remove();">+2</button><button class="btn small" onclick="manualRate(${id}, -1); this.closest('.modal').remove();">-1</button><button class="btn small" onclick="manualRate(${id}, -2); this.closest('.modal').remove();">-2</button><button class="btn small secondary" onclick="this.closest('.modal').remove()">Закрыть</button></div></div>`;
   document.body.appendChild(modal);
   modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
 }
 
 function manualRate(id, delta) {
   const student = state.students.find(s => s.id === id); student.points += delta;
-  state.history.unshift({ date: new Date().toISOString(), studentId: id, studentName: student.name, delta: delta, reason: "Ручная корректировка" });
+  state.history.unshift({ date: new Date().toISOString(), studentId: id, studentName: student.name, delta: delta, reason: "Ручная корректировка", historyClass: delta > 0 ? "plus" : "minus" });
   saveState(); renderAll();
 }
 
@@ -454,7 +542,7 @@ function renderRating(full = false) {
   list.innerHTML = sorted.map((s, i) => {
     const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
     const itemClass = i === 0 ? "top1" : i === 1 ? "top2" : i === 2 ? "top3" : "";
-    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1);
+    const medal = i === 0 ? "" : i === 1 ? "" : i === 2 ? "🥉" : (i + 1);
     return `<div class="rating-item ${itemClass}"><div class="student-rank ${rankClass}">${medal}</div><div style="flex:1;"><div style="font-weight:600;">${s.name}</div><div style="color:#888; font-size:12px;">Дежурств: ${s.duties}</div></div><div class="student-points ${s.points < 0 ? 'negative' : ''}">${s.points} б.</div></div>`;
   }).join("");
 }
@@ -479,7 +567,7 @@ function buyPrivilege(privId) {
   if (!confirm(`Выдать «${priv.name}» ученику ${student.name} за ${priv.price} б.?`)) return;
   student.points -= priv.price;
   state.boughtPrivileges.push({ id: Date.now(), studentId: studentId, studentName: student.name, privId: priv.id, icon: priv.icon, name: priv.name, date: new Date().toISOString() });
-  state.history.unshift({ date: new Date().toISOString(), studentId: studentId, studentName: student.name, delta: -priv.price, reason: `Выдано: ${priv.name}` });
+  state.history.unshift({ date: new Date().toISOString(), studentId: studentId, studentName: student.name, delta: -priv.price, reason: `Выдано: ${priv.name}`, historyClass: "minus" });
   saveState(); renderAll(); alert(`✅ ${student.name} получил(а) привилегию!`);
 }
 
@@ -494,11 +582,20 @@ function renderBoughtPrivileges() {
 function renderHistory() {
   const div = document.getElementById("historyList"); if (!div) return;
   if (!state.history.length) { div.innerHTML = '<p style="color:#888;">Пока нет операций.</p>'; return; }
-  div.innerHTML = state.history.slice(0, 100).map(h => `<div class="history-item ${h.delta > 0 ? 'plus' : 'minus'}"><div><strong>${h.studentName}</strong> — ${h.delta > 0 ? '+' : ''}${h.delta} б. — ${h.reason}</div><div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div></div>`).join("");
+  div.innerHTML = state.history.slice(0, 100).map(h => `<div class="history-item ${h.historyClass || (h.delta > 0 ? 'plus' : 'minus')}"><div><strong>${h.studentName}</strong> — ${h.delta > 0 ? '+' : ''}${h.delta} б. — ${h.reason}</div><div class="history-date">${new Date(h.date).toLocaleString("ru-RU")}</div></div>`).join("");
+}
+
+function renderQuickActions() {
+  const select = document.getElementById("quickStudent");
+  if (!select) return;
+  const currentValue = select.value;
+  select.innerHTML = '<option value="">— Выберите ученика —</option>' + 
+    state.students.map(s => `<option value="${s.id}">${s.name} (${s.points} б.)</option>`).join("");
+  if (currentValue) select.value = currentValue;
 }
 
 function renderAll() {
-  renderAbsentList(); renderRateSection(); renderStudentList(); renderRating(true); renderRating(false); renderShop(); renderHistory();
+  renderAbsentList(); renderRateSection(); renderStudentList(); renderRating(true); renderRating(false); renderShop(); renderHistory(); renderQuickActions();
   const date = document.getElementById("dutyDate").value;
   const record = state.schedule.find(s => s.date === date);
   const dutyNames = document.getElementById("dutyNames");
